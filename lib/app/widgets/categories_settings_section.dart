@@ -218,6 +218,10 @@ class _CategoriesSettingsSectionState
                   .read(categoryStateProvider)
                   .add(controller.text);
 
+              setState(() {
+                _items = List<String>.of(ref.read(categoryStateProvider).categories);
+              });
+
               if (d.mounted) Navigator.pop(d);
 
               if (!ok && context.mounted) {
@@ -263,6 +267,10 @@ class _CategoriesSettingsSectionState
               final ok = await ref
                   .read(categoryStateProvider)
                   .rename(from, controller.text);
+
+              setState(() {
+                _items = List<String>.of(ref.read(categoryStateProvider).categories);
+              });
 
               if (d.mounted) Navigator.pop(d);
 

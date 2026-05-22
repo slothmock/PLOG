@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:sloth_ledger/app/bootstrapbill/startup_provider.dart';
 import 'package:sloth_ledger/app/widgets/error_toast.dart';
 import 'package:sloth_ledger/app/widgets/info_toast.dart';
 
 import 'package:sloth_ledger/domain/subscriptions/subscription.dart';
-import 'package:sloth_ledger/features/subscriptions/state/subscriptions_state.dart';
 import 'package:sloth_ledger/features/subscriptions/widgets/add_subscription_modal.dart';
 
 
@@ -161,19 +159,19 @@ class _SubscriptionDetailModalState extends ConsumerState<SubscriptionDetailModa
                           : () async {
                               Navigator.pop(context);
 
-                              final ok = await context
-                                  .read<SubscriptionState>()
+                              final ok = await ref
+                                  .read(subscriptionStateProvider)
                                   .delete(widget.sub.id!);
 
                               if (!context.mounted) return;
 
                               if (!ok) {
-                                final msg = context
-                                        .read<SubscriptionState>()
+                                final msg = ref
+                                        .read(subscriptionStateProvider)
                                         .errorMessage ??
                                     'Delete failed';
                                 ErrorToast.show(context, message: msg);
-                                context.read<SubscriptionState>().clearError();
+                                ref.read(subscriptionStateProvider).clearError();
                               } else {
                                 CustomInfoToast.show(context, message: 'Subscription deleted');
                               }

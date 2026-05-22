@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sloth_ledger/app/bootstrapbill/startup_provider.dart';
 
 import 'package:sloth_ledger/domain/transactions/transaction.dart';
 import 'package:sloth_ledger/features/ledger/ledger.dart';
 
-class AccountTxnRow extends StatelessWidget {
+
+class AccountTxnRow extends ConsumerWidget {
   const AccountTxnRow({
     super.key,
     required this.txn,
@@ -17,7 +19,7 @@ class AccountTxnRow extends StatelessWidget {
   final String currencySymbol;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isExpense = txn.isExpense;
     final dateStr = DateFormat.yMMMd().format(txn.date);
 
@@ -67,7 +69,7 @@ class AccountTxnRow extends StatelessWidget {
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
                 onPressed: () {
                   Navigator.pop(dialogContext);
-                  context.read<TransactionState>().deleteWithUndo(context, txn);
+                  ref.read(transactionStateProvider).deleteWithUndo(context, txn);
                 },
                 child: const Text('Delete'),
               ),
