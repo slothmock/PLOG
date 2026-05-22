@@ -1,14 +1,14 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
+import 'package:sloth_ledger/app/bootstrapbill/startup_provider.dart';
 import 'package:sloth_ledger/app/widgets/error_toast.dart';
 
 import 'package:sloth_ledger/domain/accounts/account.dart';
 import 'package:sloth_ledger/features/ledger/state/account_state.dart';
-import 'package:sloth_ledger/features/ledger/state/transaction_state.dart';
 
-class TransferModal extends StatefulWidget {
+class TransferModal extends ConsumerStatefulWidget {
   const TransferModal({
     super.key,
     this.fromAccountId,
@@ -17,10 +17,12 @@ class TransferModal extends StatefulWidget {
   final int? fromAccountId; // optional preselect
 
   @override
-  State<TransferModal> createState() => _TransferModalState();
+  ConsumerState<TransferModal> createState() => _TransferModalState();
 }
 
-class _TransferModalState extends State<TransferModal> {
+class _TransferModalState extends ConsumerState<TransferModal> {
+  
+
   final _amountController = TextEditingController();
   final _notesController = TextEditingController();
 
@@ -109,9 +111,9 @@ class _TransferModalState extends State<TransferModal> {
       return;
     }
 
-    final accountState = context.read<AccountState>();
-    final from = _acc(accountState, _fromId);
-    final to = _acc(accountState, _toId);
+    final state = ref.watch(accountStateProvider);
+    final from = _acc(state, _fromId);
+    final to = _acc(state, _toId);
 
     if (from == null || to == null) {
       ErrorToast.show(context, message: 'Select valid From and To accounts');
@@ -134,7 +136,7 @@ class _TransferModalState extends State<TransferModal> {
     // Close keyboard
     FocusScope.of(context).unfocus();
 
-    final txnState = context.read<TransactionState>();
+    final txnState = ref.read(transactionStateProvider);
     final notes = _notesController.text.trim().isEmpty ? null : _notesController.text.trim();
 
     final ok = await txnState.transfer(
@@ -160,7 +162,7 @@ class _TransferModalState extends State<TransferModal> {
 
   @override
   Widget build(BuildContext context) {
-    final accountState = context.watch<AccountState>();
+    final accountState = ref.watch(accountStateProvider);
     final accounts = accountState.accounts;
 
     // If nothing preselected, pick first account (if any)

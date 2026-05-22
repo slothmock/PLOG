@@ -128,7 +128,7 @@ class _BodyState extends ConsumerState<_Body> {
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
-                useSafeArea: true,
+                useSafeArea: false,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
