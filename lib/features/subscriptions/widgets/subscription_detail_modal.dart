@@ -99,6 +99,8 @@ class _SubscriptionDetailModalState extends ConsumerState<SubscriptionDetailModa
 
                           if (!context.mounted) return;
 
+                          ref.read(transactionStateProvider).loadAll(force: true);
+
                           if (!ok) {
                             final msg = ref
                                 .read(subscriptionStateProvider)
