@@ -141,6 +141,15 @@ class TransactionState extends ChangeNotifier {
     }
   }
 
+  Future<void> ensureAllLoaded() async {
+    if (!_allLoaded) {
+      await loadAll(force: false, pageSize: _pageSize);
+    }
+    while (_hasMore && !_loading) {
+      await loadMore();
+    }
+  }
+
   Future<void> refreshAll() async {
     await loadAll(force: true, pageSize: _pageSize);
     await _balances.load(force: true);

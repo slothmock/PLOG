@@ -57,7 +57,6 @@ class AppResetState extends ChangeNotifier {
     try {
       log.w('AppResetState.reset()');
       await _repo.resetApp();
-      _txns?.deleteAll();
 
       await Future.wait([
         _accounts!.load(force: true),

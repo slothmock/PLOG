@@ -9,7 +9,6 @@ import 'package:sloth_ledger/features/ledger/ledger.dart';
 
 import 'package:sloth_ledger/features/ledger/utils/relative_labels.dart';
 
-
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
 
@@ -305,6 +304,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final hasFilters = _accountId != null || _category != null;
     final isTrulyEmpty = txnState.all.isEmpty;
 
+    if ((hasSearch || hasFilters) && txnState.hasMore && !txnState.loading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(transactionStateProvider).ensureAllLoaded();
+        }
+      });
+    }
+
     final searched = _applySearch(base, accountState);
     final collapsed = collapseTransfers(searched, accountState);
     final groups = _groupByDay(collapsed);
@@ -473,7 +480,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     color: Colors.grey.shade400,
                                   ),
                                   const SizedBox(height: 16),
-                              
+
                                   if (isTrulyEmpty &&
                                       !hasFilters &&
                                       !hasSearch) ...[
@@ -637,10 +644,11 @@ class _LedgerDayGroup extends StatelessWidget {
             ],
           ),
         ),
-        ...txns.map((t) => TransactionRow(txn: t, currencySymbol: currencySymbol)),
+        ...txns.map(
+          (t) => TransactionRow(txn: t, currencySymbol: currencySymbol),
+        ),
         const Divider(height: 16),
       ],
     );
   }
 }
-

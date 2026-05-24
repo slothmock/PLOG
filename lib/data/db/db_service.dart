@@ -18,7 +18,7 @@ class DBService {
     return _db!;
   }
 
-  static const int schemaVersion = 1;
+  static const int schemaVersion = 2;
   int getDbVersion() => schemaVersion;
 
   Future<Database> _initDB() async {
@@ -28,6 +28,9 @@ class DBService {
     return await openDatabase(
       path,
       version: schemaVersion,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -54,7 +57,7 @@ class DBService {
         notes TEXT,
         merchant TEXT,
         date INTEGER NOT NULL,
-        account_id INTEGER NOT NULL REFERENCES accounts(id),
+        account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
         transfer_group_id TEXT
       )
     ''');
@@ -109,7 +112,96 @@ class DBService {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    throw Exception('DB upgrades not yet implemented. Old version: $oldVersion, new version: $newVersion');  
+    if (oldVersion < 2) {
+      await _migrateToV2(db);
+    }
+  }
+
+  Future<void> _migrateToV2(Database db) async {
+    await db.transaction((txn) async {
+      await txn.execute('''
+        CREATE TABLE subscriptions_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          amount REAL NOT NULL,
+          currency TEXT NOT NULL,
+          interval TEXT NOT NULL,
+          next_due INTEGER NOT NULL,
+          account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+      ''');
+
+      await txn.execute('''
+        INSERT INTO subscriptions_new (
+          id, name, amount, currency, interval, next_due, account_id,
+          is_active, created_at, updated_at
+        )
+        SELECT s.id, s.name, s.amount, s.currency, s.interval, s.next_due,
+          s.account_id, s.is_active, s.created_at, s.updated_at
+        FROM subscriptions s
+        INNER JOIN accounts a ON a.id = s.account_id;
+      ''');
+
+      await txn.execute('''
+        CREATE TABLE subscription_events_migrate (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          subscription_id INTEGER NOT NULL,
+          kind TEXT NOT NULL,
+          amount REAL,
+          date INTEGER NOT NULL,
+          due_date INTEGER,
+          notes TEXT,
+          txn_id INTEGER
+        );
+      ''');
+
+      await txn.execute('''
+        INSERT INTO subscription_events_migrate (
+          id, subscription_id, kind, amount, date, due_date, notes, txn_id
+        )
+        SELECT e.id, e.subscription_id, e.kind, e.amount, e.date,
+          e.due_date, e.notes, e.txn_id
+        FROM subscription_events e
+        INNER JOIN subscriptions_new s ON s.id = e.subscription_id
+        LEFT JOIN transactions t ON t.id = e.txn_id
+        WHERE e.txn_id IS NULL OR t.id IS NOT NULL;
+      ''');
+
+      await txn.execute('DROP TABLE subscription_events;');
+      await txn.execute('DROP TABLE subscriptions;');
+      await txn.execute(
+        'ALTER TABLE subscriptions_new RENAME TO subscriptions;',
+      );
+
+      await txn.execute('''
+        CREATE TABLE subscription_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          subscription_id INTEGER NOT NULL REFERENCES subscriptions(id) ON DELETE CASCADE,
+          kind TEXT NOT NULL,
+          amount REAL,
+          date INTEGER NOT NULL,
+          due_date INTEGER,
+          notes TEXT,
+          txn_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL
+        );
+      ''');
+
+      await txn.execute('''
+        INSERT INTO subscription_events (
+          id, subscription_id, kind, amount, date, due_date, notes, txn_id
+        )
+        SELECT id, subscription_id, kind, amount, date, due_date, notes, txn_id
+        FROM subscription_events_migrate;
+      ''');
+
+      await txn.execute('DROP TABLE subscription_events_migrate;');
+    });
+
+    await _createSubscriptionsTable(db);
+    await _createSubsEventsTable(db);
   }
 
   Future<void> _createSubscriptionsTable(Database db) async {
@@ -121,7 +213,7 @@ class DBService {
         currency TEXT NOT NULL,
         interval TEXT NOT NULL,
         next_due INTEGER NOT NULL,
-        account_id INTEGER NOT NULL,
+        account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
         is_active INTEGER NOT NULL DEFAULT 1,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
@@ -143,13 +235,13 @@ class DBService {
     await db.execute('''
     CREATE TABLE IF NOT EXISTS subscription_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      subscription_id INTEGER NOT NULL,
+      subscription_id INTEGER NOT NULL REFERENCES subscriptions(id) ON DELETE CASCADE,
       kind TEXT NOT NULL,
       amount REAL,
       date INTEGER NOT NULL,
       due_date INTEGER,
       notes TEXT,
-      txn_id INTEGER
+      txn_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL
     );
   ''');
 
@@ -196,7 +288,7 @@ class DBService {
       'currency': currency,
       'opening_balance': openingBalance,
       'created_at': createdAtMillis,
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    });
   }
 
   Future<void> updateAccount({
@@ -338,6 +430,16 @@ class DBService {
   Future<List<Map<String, Object?>>> getTransactionAmounts() async {
     final database = await db;
     return database.query('transactions', columns: ['account_id', 'amount']);
+  }
+
+  Future<bool> hasTransactionsForAccount(int accountId) async {
+    final database = await db;
+    final result = await database.rawQuery(
+      'SELECT EXISTS(SELECT 1 FROM transactions WHERE account_id = ? LIMIT 1) AS has_rows',
+      [accountId],
+    );
+    final value = result.single['has_rows'];
+    return value == 1 || value == true;
   }
 
   // =========================
@@ -580,34 +682,42 @@ class DBService {
   Future<void> resetApp() async {
     final database = await db;
 
-    await database.delete('transactions');
-    await database.delete('categories');
-    await database.delete('settings');
-    await database.delete('accounts');
+    await database.transaction((txn) async {
+      await txn.delete('subscription_events');
+      await txn.delete('transactions');
+      await txn.delete('subscriptions');
+      await txn.delete('categories');
+      await txn.delete('settings');
+      await txn.delete('accounts');
 
-    // re-seed defaults
-    await setCurrency(code: 'GBP', symbol: '£');
+      await txn.insert('settings', {'key': 'currency_code', 'value': 'GBP'});
+      await txn.insert('settings', {'key': 'currency_symbol', 'value': '£'});
 
-    await insertAccount(
-      name: 'Cash',
-      category: AccountCategory.fiat.name,
-      type: AccountType.cash.name,
-      currency: 'GBP',
-      openingBalance: 0.0,
-      createdAtMillis: DateTime.now().millisecondsSinceEpoch,
-    );
+      await txn.insert('accounts', {
+        'name': 'Cash',
+        'category': AccountCategory.fiat.dbValue,
+        'type': AccountType.cash.dbValue,
+        'currency': 'GBP',
+        'opening_balance': 0.0,
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+      });
 
-    const defaultCategories = [
-      'Groceries',
-      'Rent',
-      'Utilities',
-      'Salary',
-      'Investment',
-      'Entertainment',
-      'Travel',
-    ];
-    for (var cat in defaultCategories) {
-      await insertCategory(cat);
-    }
+      const defaultCategories = [
+        'Salary',
+        'Rent',
+        'Utilities',
+        'Groceries',
+        'Investment',
+        'Entertainment',
+        'Travel',
+        'Subscriptions',
+      ];
+      for (var i = 0; i < defaultCategories.length; i++) {
+        await txn.insert('categories', {
+          'name': defaultCategories[i],
+          'sort_order': i,
+        });
+      }
+    });
   }
 }

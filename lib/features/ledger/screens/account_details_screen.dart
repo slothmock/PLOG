@@ -50,7 +50,8 @@ class AccountDetailScreen extends ConsumerStatefulWidget {
   final SlothAccount account;
 
   @override
-  ConsumerState<AccountDetailScreen> createState() => _AccountDetailScreenState();
+  ConsumerState<AccountDetailScreen> createState() =>
+      _AccountDetailScreenState();
 }
 
 class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
@@ -63,6 +64,8 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!txnState.loading && txnState.all.isEmpty) {
         ref.read(transactionStateProvider).loadAll();
+      } else if (!txnState.loading && txnState.hasMore) {
+        ref.read(transactionStateProvider).ensureAllLoaded();
       }
     });
 
@@ -73,8 +76,8 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
         : widget.account.currency;
 
     final currentMetric =
-        balances.accountBalances[widget.account.id!] ?? widget.account.openingBalance;
-
+        balances.accountBalances[widget.account.id!] ??
+        widget.account.openingBalance;
 
     final txnsAsc = List<SlothTransaction>.of(
       txnState.allForAccount(widget.account.id!),

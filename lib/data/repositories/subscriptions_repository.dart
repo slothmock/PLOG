@@ -94,6 +94,7 @@ class SubscriptionRepository {
     DateTime? paidAt,
     double? amountOverride,
     String? notes,
+
     /// Use for future "link to transaction".
     int? existingTxnId,
     String subscriptionsCategory = 'Subscriptions',
@@ -110,6 +111,7 @@ class SubscriptionRepository {
 
     final raw = amountOverride ?? sub.amount;
     final expenseAmount = raw <= 0 ? raw : -raw;
+    final dueMillis = due.millisecondsSinceEpoch;
 
     try {
       final database = await _db.db;
@@ -118,16 +120,11 @@ class SubscriptionRepository {
 
       await database.transaction((txn) async {
         if (!force) {
-          final start = due
-              .subtract(const Duration(hours: 36))
-              .millisecondsSinceEpoch;
-          final end = due.add(const Duration(hours: 36)).millisecondsSinceEpoch;
-
           final existing = await txn.query(
             'subscription_events',
-            columns: ['id', 'txn_id', 'date'],
-            where: 'subscription_id = ? AND kind = ? AND date BETWEEN ? AND ?',
-            whereArgs: [sub.id, 'paid', start, end],
+            columns: ['id', 'txn_id', 'due_date'],
+            where: 'subscription_id = ? AND kind = ? AND due_date = ?',
+            whereArgs: [sub.id, 'paid', dueMillis],
             limit: 1,
           );
 
@@ -156,6 +153,7 @@ class SubscriptionRepository {
           'kind': 'paid',
           'amount': raw,
           'date': dt.millisecondsSinceEpoch,
+          'due_date': dueMillis,
           'notes': (notes?.trim().isEmpty ?? true) ? null : notes!.trim(),
           'txn_id': txnId,
         });
@@ -201,7 +199,7 @@ class SubscriptionRepository {
         'notes': notes,
         'txn_id': null,
       });
-      
+
       await txn.update(
         'subscriptions',
         {'next_due': next.millisecondsSinceEpoch},
