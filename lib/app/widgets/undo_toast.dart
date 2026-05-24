@@ -9,7 +9,13 @@ class UndoToast {
     String actionLabel = 'UNDO',
     bool showAtTop = false,
   }) {
-    final overlay = Overlay.of(context);
+    final overlay =
+        Navigator.maybeOf(context, rootNavigator: true)?.overlay ??
+        Overlay.maybeOf(context, rootOverlay: true);
+
+    if (overlay == null) {
+      return Future.value(false);
+    }
 
     final completer = Completer<bool>();
     OverlayEntry? entry;
@@ -86,7 +92,9 @@ class _ToastOverlayState extends State<_ToastOverlay>
 
   @override
   Widget build(BuildContext context) {
-    final alignment = widget.showAtTop ? Alignment.topCenter : Alignment.bottomCenter;
+    final alignment = widget.showAtTop
+        ? Alignment.topCenter
+        : Alignment.bottomCenter;
     final offsetY = widget.showAtTop ? widget.topOffset : widget.bottomOffset;
 
     return Material(
@@ -117,7 +125,9 @@ class _ToastOverlayState extends State<_ToastOverlay>
                 opacity: CurvedAnimation(parent: _c, curve: Curves.easeOut),
                 child: SlideTransition(
                   position: Tween<Offset>(
-                    begin: widget.showAtTop ? const Offset(0, -0.08) : const Offset(0, 0.08),
+                    begin: widget.showAtTop
+                        ? const Offset(0, -0.08)
+                        : const Offset(0, 0.08),
                     end: Offset.zero,
                   ).animate(CurvedAnimation(parent: _c, curve: Curves.easeOut)),
                   child: _ToastCard(
@@ -172,10 +182,7 @@ class _ToastCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              TextButton(
-                onPressed: onUndo,
-                child: Text(actionLabel),
-              ),
+              TextButton(onPressed: onUndo, child: Text(actionLabel)),
               const SizedBox(width: 8),
               IconButton(
                 onPressed: onDismiss,

@@ -8,7 +8,13 @@ class ErrorToast {
     Duration duration = const Duration(seconds: 3),
     bool showAtTop = false,
   }) {
-    final overlay = Overlay.of(context);
+    final overlay =
+        Navigator.maybeOf(context, rootNavigator: true)?.overlay ??
+        Overlay.maybeOf(context, rootOverlay: true);
+
+    if (overlay == null) {
+      return Future.value();
+    }
 
     final completer = Completer<void>();
     OverlayEntry? entry;

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:sloth_ledger/app/bootstrapbill/startup_provider.dart';
 
 import 'package:sloth_ledger/domain/transactions/transaction.dart';
 import 'package:sloth_ledger/features/ledger/modals/add_transaction_modal.dart';
-import 'package:sloth_ledger/features/ledger/state/transaction_state.dart';
 
 class TransactionDetailModal extends ConsumerStatefulWidget {
   const TransactionDetailModal({
@@ -18,10 +16,12 @@ class TransactionDetailModal extends ConsumerStatefulWidget {
   final BuildContext hostContext;
 
   @override
-  ConsumerState<TransactionDetailModal> createState() => _TransactionDetailModalState();
+  ConsumerState<TransactionDetailModal> createState() =>
+      _TransactionDetailModalState();
 }
 
-class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal> {
+class _TransactionDetailModalState
+    extends ConsumerState<TransactionDetailModal> {
   @override
   Padding build(BuildContext context) {
     final title = (widget.txn.merchant?.trim().isNotEmpty ?? false)
@@ -113,7 +113,8 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          builder: (_) => AddTransactionModal(transaction: widget.txn),
+                          builder: (_) =>
+                              AddTransactionModal(transaction: widget.txn),
                         );
                       },
                     ),
@@ -128,15 +129,16 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
                       icon: const Icon(Icons.delete),
                       label: const Text('Delete'),
                       onPressed: () async {
+                        final navigator = Navigator.of(
+                          widget.hostContext,
+                          rootNavigator: true,
+                        );
 
-                        if (widget.txn.id == null) return;
-
-                        await widget.hostContext
-                            .read<TransactionState>()
-                            .deleteWithUndo(widget.hostContext, widget.txn);
-                            
-                        if (!context.mounted) return;
                         Navigator.pop(context);
+
+                        await ref
+                            .read(transactionStateProvider)
+                            .deleteWithUndo(navigator.context, widget.txn);
                       },
                     ),
                   ),

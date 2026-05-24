@@ -8,7 +8,13 @@ class CustomInfoToast {
     Duration duration = const Duration(seconds: 3),
     bool showAtTop = true,
   }) {
-    final overlay = Overlay.of(context);
+    final overlay =
+        Navigator.maybeOf(context, rootNavigator: true)?.overlay ??
+        Overlay.maybeOf(context, rootOverlay: true);
+
+    if (overlay == null) {
+      return Future.value();
+    }
 
     final completer = Completer<void>();
     OverlayEntry? entry;
@@ -75,10 +81,7 @@ class _ToastOverlay extends StatelessWidget {
             color: Colors.black87,
             borderRadius: BorderRadius.circular(8.0),
           ),
-          child: Text(
-            message,
-            style: const TextStyle(color: Colors.white),
-          ),
+          child: Text(message, style: const TextStyle(color: Colors.white)),
         ),
       ),
     );
