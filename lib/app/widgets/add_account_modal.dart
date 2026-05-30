@@ -22,7 +22,7 @@ class _AddAccountModalState extends ConsumerState<AddAccountModal> {
   final _name = TextEditingController();
   final _opening = TextEditingController();
 
-  AccountCategory _category = AccountCategory.fiat;
+  AccountCategory _category = AccountCategory.asset;
   AccountType? _type;
 
   @override
@@ -34,7 +34,7 @@ class _AddAccountModalState extends ConsumerState<AddAccountModal> {
     _name.text = a?.name ?? '';
     _opening.text = (a?.openingBalance ?? 0.0).toStringAsFixed(2);
 
-    _category = a?.category ?? AccountCategory.fiat;
+    _category = a?.category ?? AccountCategory.asset;
 
     final allowed = accountTypesFor(_category);
 

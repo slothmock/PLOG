@@ -69,7 +69,10 @@ class BalanceState extends ChangeNotifier {
 
           final bucket = totalsByCurrency.putIfAbsent(
             currency,
-            () => {AccountCategory.fiat: 0.0},
+            () => {
+              AccountCategory.asset: 0.0,
+              AccountCategory.liability: 0.0,
+            },
           );
 
           bucket[category] = (bucket[category] ?? 0.0) + balance;

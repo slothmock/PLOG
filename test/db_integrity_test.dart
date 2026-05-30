@@ -62,7 +62,7 @@ void main() {
 
       await accounts.create(
         name: 'Bills',
-        category: AccountCategory.fiat,
+        category: AccountCategory.asset,
         type: AccountType.bank,
         currency: 'GBP',
         openingBalance: 10,
@@ -72,7 +72,7 @@ void main() {
       expect(
         () => accounts.create(
           name: 'Bills',
-          category: AccountCategory.fiat,
+          category: AccountCategory.asset,
           type: AccountType.bank,
           currency: 'GBP',
           openingBalance: 99,
@@ -114,7 +114,7 @@ void main() {
 
     await accounts.create(
       name: 'Bills',
-      category: AccountCategory.fiat,
+      category: AccountCategory.asset,
       type: AccountType.bank,
       currency: 'GBP',
       openingBalance: 12.34,

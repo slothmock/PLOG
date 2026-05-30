@@ -59,16 +59,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final balances = ref.watch(balanceStateProvider);
 
     final settings = settingsState.settings;
-    final recentTxns = txnState.recent(limit: 5);
+    final recentTxns = txnState.recent(limit: 4);
     final collapsedRecent = collapseTransfers(recentTxns, accountState);
 
-    final cashTotal = balances.totalFor(
+    final assetTotal = balances.totalFor(
       currencyCode: 'GBP',
-      category: AccountCategory.fiat,
+      category: AccountCategory.asset,
     );
+    final liabilityTotal = balances.totalFor(
+      currencyCode: 'GBP',
+      category: AccountCategory.liability,
+    );
+    final liabilityExposure = liabilityTotal.abs();
+    final netWorth = assetTotal - liabilityExposure;
 
     log.d(
-      'HomeScreen build: cash=$cashTotal, recentTxns=${recentTxns.length}, settings=${settingsState.settings}',
+      'HomeScreen build: assets=$assetTotal, liabilities=$liabilityExposure, netWorth=$netWorth, recentTxns=${recentTxns.length}, settings=${settingsState.settings}',
     );
 
     final cs = Theme.of(context).colorScheme;
@@ -80,6 +86,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Scaffold(
         backgroundColor: cs.surface,
         appBar: AppBar(
+          backgroundColor: cs.surface,
           title: const Text(AppStrings.appName),
           centerTitle: true,
           elevation: 0,
@@ -103,19 +110,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onRefresh: () => _refresh(context),
             child: CustomScrollView(
               controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
+              physics: const NeverScrollableScrollPhysics(),
               slivers: [
                 // Balance row (simple, clean)
                 SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
                   sliver: SliverToBoxAdapter(
                     child: Row(
                       children: [
                         Expanded(
                           child: BalanceCard(
-                            label: AppStrings.totalCashLabel,
-                            amount: cashTotal,
+                            label: 'Assets',
+                            amount: assetTotal,
                             currencySymbol: settings.currencySymbol,
+                            icon: Icons.account_balance_wallet_outlined,
+                          ),
+                        ),
+                        Expanded(
+                          child: BalanceCard(
+                            label: 'Liabilities',
+                            amount: liabilityExposure,
+                            currencySymbol: settings.currencySymbol,
+                            icon: Icons.credit_card_outlined,
+                          ),
+                        ),
+                        Expanded(
+                          child: BalanceCard(
+                            label: 'Net Worth',
+                            amount: netWorth,
+                            currencySymbol: settings.currencySymbol,
+                            icon: Icons.trending_up,
                           ),
                         ),
                       ],
@@ -125,7 +152,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                 // Subtle divider to separate "summary" from content
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 3),
                   sliver: SliverToBoxAdapter(
                     child: Container(
                       height: 0.5,
@@ -137,7 +164,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 // Recent transactions card
                 SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
                   sliver: SliverToBoxAdapter(
                     child: Card(
                       elevation: 3,
@@ -203,7 +233,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
-                    vertical: 32,
+                    vertical: 8,
                   ),
                   sliver: SliverToBoxAdapter(
                     child: Column(

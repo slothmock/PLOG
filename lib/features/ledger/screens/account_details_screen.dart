@@ -12,7 +12,8 @@ enum _AccountMetricMode { balance, netContrib }
 
 _AccountMetricMode _metricModeFor(SlothAccount a) {
   switch (a.category) {
-    case AccountCategory.fiat:
+    case AccountCategory.asset:
+    case AccountCategory.liability:
       return _AccountMetricMode.balance;
   }
 }

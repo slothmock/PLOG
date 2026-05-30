@@ -95,7 +95,7 @@ class DBService {
 
     await db.insert('accounts', {
       'name': 'Cash',
-      'category': 'fiat',
+      'category': AccountCategory.asset.dbValue,
       'type': 'cash',
       'currency': 'GBP',
       'created_at': DateTime.now().millisecondsSinceEpoch,
@@ -879,7 +879,7 @@ class DBService {
 
       await txn.insert('accounts', {
         'name': 'Cash',
-        'category': AccountCategory.fiat.dbValue,
+        'category': AccountCategory.asset.dbValue,
         'type': AccountType.cash.dbValue,
         'currency': 'GBP',
         'opening_balance_minor': 0,

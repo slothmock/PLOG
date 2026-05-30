@@ -31,7 +31,7 @@ class AppResetRepository {
       // Default account
       await txn.insert('accounts', {
         'name': 'Cash',
-        'category': AccountCategory.fiat.dbValue,
+        'category': AccountCategory.asset.dbValue,
         'type': AccountType.cash.dbValue,
         'currency': 'GBP',
         'opening_balance_minor': 0,
