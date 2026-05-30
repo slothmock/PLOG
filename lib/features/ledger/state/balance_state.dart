@@ -20,7 +20,8 @@ class BalanceState extends ChangeNotifier {
 
   // currencyCode -> (category -> total)
   Map<String, Map<AccountCategory, double>> _totalsByCurrency = const {};
-  Map<String, Map<AccountCategory, double>> get totalsByCurrency => _totalsByCurrency;
+  Map<String, Map<AccountCategory, double>> get totalsByCurrency =>
+      _totalsByCurrency;
 
   Future<void>? _inFlight;
 
@@ -66,9 +67,10 @@ class BalanceState extends ChangeNotifier {
 
           accountBalances[id] = balance;
 
-          final bucket = totalsByCurrency.putIfAbsent(currency, () => {
-              AccountCategory.fiat: 0.0,
-              });
+          final bucket = totalsByCurrency.putIfAbsent(
+            currency,
+            () => {AccountCategory.fiat: 0.0},
+          );
 
           bucket[category] = (bucket[category] ?? 0.0) + balance;
         }

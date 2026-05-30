@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -9,10 +8,7 @@ import 'package:sloth_ledger/domain/accounts/account.dart';
 import 'package:sloth_ledger/features/ledger/state/account_state.dart';
 
 class TransferModal extends ConsumerStatefulWidget {
-  const TransferModal({
-    super.key,
-    this.fromAccountId,
-  });
+  const TransferModal({super.key, this.fromAccountId});
 
   final int? fromAccountId; // optional preselect
 
@@ -21,8 +17,6 @@ class TransferModal extends ConsumerStatefulWidget {
 }
 
 class _TransferModalState extends ConsumerState<TransferModal> {
-  
-
   final _amountController = TextEditingController();
   final _notesController = TextEditingController();
 
@@ -105,7 +99,9 @@ class _TransferModalState extends ConsumerState<TransferModal> {
   Future<void> _submit() async {
     if (_submitting) return;
 
-    final raw = double.tryParse(_amountController.text.trim().replaceAll(',', ''));
+    final raw = double.tryParse(
+      _amountController.text.trim().replaceAll(',', ''),
+    );
     if (raw == null || raw <= 0) {
       ErrorToast.show(context, message: 'Enter a valid amount');
       return;
@@ -127,7 +123,10 @@ class _TransferModalState extends ConsumerState<TransferModal> {
 
     // Enforce same category + currency (your definition)
     if (from.category != to.category || from.currency != to.currency) {
-      ErrorToast.show(context, message: 'Transfers must be within the same category and currency');
+      ErrorToast.show(
+        context,
+        message: 'Transfers must be within the same category and currency',
+      );
       return;
     }
 
@@ -137,7 +136,9 @@ class _TransferModalState extends ConsumerState<TransferModal> {
     FocusScope.of(context).unfocus();
 
     final txnState = ref.read(transactionStateProvider);
-    final notes = _notesController.text.trim().isEmpty ? null : _notesController.text.trim();
+    final notes = _notesController.text.trim().isEmpty
+        ? null
+        : _notesController.text.trim();
 
     final ok = await txnState.transfer(
       fromAccountId: from.id!,
@@ -152,7 +153,10 @@ class _TransferModalState extends ConsumerState<TransferModal> {
     setState(() => _submitting = false);
 
     if (!ok) {
-      ErrorToast.show(context, message: txnState.errorMessage ?? 'Transfer failed');
+      ErrorToast.show(
+        context,
+        message: txnState.errorMessage ?? 'Transfer failed',
+      );
       txnState.clearError();
       return;
     }
@@ -172,7 +176,9 @@ class _TransferModalState extends ConsumerState<TransferModal> {
 
     final from = _acc(accountState, _fromId);
 
-    final toCandidates = (from == null) ? <SlothAccount>[] : _eligibleToAccounts(accountState, from);
+    final toCandidates = (from == null)
+        ? <SlothAccount>[]
+        : _eligibleToAccounts(accountState, from);
 
     // If "to" is invalid for the chosen from, snap it.
     if (from != null) {
@@ -186,9 +192,13 @@ class _TransferModalState extends ConsumerState<TransferModal> {
 
     return SafeArea(
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
         child: Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -205,10 +215,14 @@ class _TransferModalState extends ConsumerState<TransferModal> {
                     initialValue: _fromId,
                     items: accounts
                         .where((a) => a.id != null)
-                        .map((a) => DropdownMenuItem(
+                        .map(
+                          (a) => DropdownMenuItem(
                             value: a.id,
-                              child: Text('${a.name} • ${a.categoryLabel} • ${a.currency}'),
-                            ))
+                            child: Text(
+                              '${a.name} • ${a.categoryLabel} • ${a.currency}',
+                            ),
+                          ),
+                        )
                         .toList(),
                     onChanged: _submitting
                         ? null
@@ -226,12 +240,16 @@ class _TransferModalState extends ConsumerState<TransferModal> {
                   DropdownButtonFormField<int>(
                     initialValue: _toId,
                     items: toCandidates
-                        .map((a) => DropdownMenuItem(
+                        .map(
+                          (a) => DropdownMenuItem(
                             value: a.id,
                             child: Text(a.name),
-                            ))
+                          ),
+                        )
                         .toList(),
-                    onChanged: (_submitting || toCandidates.isEmpty) ? null : (v) => setState(() => _toId = v),
+                    onChanged: (_submitting || toCandidates.isEmpty)
+                        ? null
+                        : (v) => setState(() => _toId = v),
                     decoration: InputDecoration(
                       labelText: 'To',
                       border: const OutlineInputBorder(),
@@ -247,7 +265,10 @@ class _TransferModalState extends ConsumerState<TransferModal> {
 
                   TextField(
                     controller: _amountController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: false),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                      signed: false,
+                    ),
                     decoration: InputDecoration(
                       labelText: 'Amount (${from?.currency ?? '—'})',
                       border: const OutlineInputBorder(),

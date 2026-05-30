@@ -26,8 +26,17 @@ class TransactionRepository {
   Future<List<SlothTransaction>> fetchPage({
     required int limit,
     required int offset,
+    int? accountId,
+    String? category,
+    String? searchQuery,
   }) async {
-    return _db.getTransactionsPaged(limit: limit, offset: offset);
+    return _db.getTransactionsPaged(
+      limit: limit,
+      offset: offset,
+      accountId: accountId,
+      category: category,
+      searchQuery: searchQuery,
+    );
   }
 
   Future<List<SlothTransaction>> fetchIncome({int? limit}) async {
@@ -150,7 +159,7 @@ class TransactionRepository {
     await _db.runInTransaction((txn) async {
       // debit
       await txn.insert('transactions', {
-        'amount': -amount,
+        'amount_minor': DBService.toMinorUnits(-amount),
         'category': 'Transfer',
         'notes': notes,
         'merchant': null,
@@ -161,7 +170,7 @@ class TransactionRepository {
 
       // credit
       await txn.insert('transactions', {
-        'amount': amount,
+        'amount_minor': DBService.toMinorUnits(amount),
         'category': 'Transfer',
         'notes': notes,
         'merchant': null,

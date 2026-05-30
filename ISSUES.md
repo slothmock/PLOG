@@ -6,12 +6,31 @@ Repo: `D:\sloth_ledger`
 Scope:
 - Full repo review on `main`.
 - No uncommitted changes were present at review time.
-- `flutter analyze` passed.
-- `flutter test` failed because the current widget test is stale.
+- `flutter analyze` passed at review time and still passes after the cleanup pass.
+- `flutter test` failed at review time because the widget test was stale; this has since been fixed.
+
+## Current Status
+
+Last checked: 2026-05-30
+
+Verification:
+- `flutter analyze` passes.
+- `flutter test` passes.
+- `lib/data/db/db_service.dart` has no `rawQuery` usage.
+
+Completed in this pass:
+- Issues 1, 2, 3, 4, 6, 7, 9, 10, and 11 are complete.
+- Issue 5 is resolved via explicit full-page loading for account detail totals/history.
+- Issue 8 is resolved for release builds by disabling logger output in `kReleaseMode`; debug logs may still include values while developing.
+
+Remaining:
+- No known issue-tracker items remain open after this pass.
 
 ## Priority Fixes
 
 ### 1. High — Duplicate account creation can replace existing accounts
+
+Status: **Done** — account creation now uses default/abort behaviour instead of `ConflictAlgorithm.replace`, preserving existing account rows on duplicate names.
 
 Files:
 - `lib/data/db/db_service.dart`
@@ -31,6 +50,8 @@ Use `ConflictAlgorithm.abort`/default behaviour, catch duplicate-name errors, an
 ---
 
 ### 2. High — Foreign keys are incomplete/not reliably enforced
+
+Status: **Done** — `openDatabase()` enables `PRAGMA foreign_keys = ON`; subscription tables now define explicit foreign keys and delete policies.
 
 Files:
 - `lib/data/db/db_service.dart`
@@ -60,6 +81,8 @@ Then define explicit foreign keys and intentional `ON DELETE` policies.
 
 ### 3. High — App reset leaves subscription event history behind
 
+Status: **Done** — reset deletes `subscription_events` first inside the reset transaction before reseeding defaults.
+
 Files:
 - `lib/data/repositories/app_reset_repository.dart`
 - `lib/data/db/db_service.dart`
@@ -87,6 +110,8 @@ Also consolidate duplicate reset paths so there is one trusted reset implementat
 ---
 
 ### 4. High — Subscription paid duplicate protection is flawed
+
+Status: **Done** — paid events store the cycle `due_date` and duplicate checks use `subscription_id`, `kind`, and exact `due_date`.
 
 Files:
 - `lib/data/db/db_service.dart`
@@ -119,6 +144,8 @@ Then check duplicates by `subscription_id`, `kind = paid`, and exact `due_date`.
 
 ### 5. Medium — Account detail totals use only loaded transaction cache
 
+Status: **Done** — account detail explicitly calls `ensureAllLoaded()` before calculating account totals/history from transaction state.
+
 Files:
 - `lib/features/ledger/screens/account_details_screen.dart`
 - `lib/features/ledger/state/transaction_state.dart`
@@ -138,6 +165,8 @@ Move account-specific totals/history to repository/database queries, or explicit
 
 ### 6. Medium — Ledger search/filter only applies to loaded pages
 
+Status: **Done** — ledger filters/search are DB-backed through paged transaction queries.
+
 Files:
 - `lib/features/ledger/screens/transactions_screen.dart`
 - `lib/features/ledger/state/transaction_state.dart`
@@ -155,9 +184,18 @@ Implement DB-backed search/filter with pagination.
 
 ### 7. Medium — Money is stored as `REAL`/`double`
 
+Status: **Done** — schema version 3 stores money columns as integer minor units and migrates version 2 `REAL` values with `ROUND(value * 100)`.
+
 Files:
 - `lib/data/db/db_service.dart`
 - `lib/data/repositories/balance_repository.dart`
+- `lib/data/repositories/transaction_repository.dart`
+- `lib/data/repositories/subscriptions_repository.dart`
+- `lib/domain/money/money.dart`
+- `lib/domain/accounts/account.dart`
+- `lib/domain/transactions/transaction.dart`
+- `lib/domain/subscriptions/subscription.dart`
+- `test/db_integrity_test.dart`
 
 Issue:
 Financial values are stored as SQLite `REAL` and represented in Dart as `double`.
@@ -165,16 +203,20 @@ Financial values are stored as SQLite `REAL` and represented in Dart as `double`
 Impact:
 Floating-point rounding drift can appear over time. This is especially risky for a finance ledger.
 
-Recommended fix:
-Store money as integer minor units, e.g. pence/cents:
+Implemented fix:
+Money is stored as integer minor units, e.g. pence/cents:
 
 - £12.34 -> `1234`
+
+The public UI-facing APIs still expose decimal `double` values where the app already expects them, but persistence and domain entities now keep canonical `*_minor` integers.
 
 If crypto support is added later, use asset-specific precision metadata rather than generic `double`.
 
 ---
 
 ### 8. Medium — Release logging may expose private finance data
+
+Status: **Done for release builds** — logger output is disabled in `kReleaseMode`; debug logs remain verbose for development.
 
 Files:
 - `lib/app/logging/app_logger.dart`
@@ -204,6 +246,8 @@ if (kReleaseMode) {
 
 ### 9. Medium — Reset state performs an unawaited destructive call
 
+Status: **Done** — `AppResetState.reset()` no longer calls the redundant unawaited transaction delete.
+
 File:
 - `lib/app/state/app_reset_state.dart`
 
@@ -225,6 +269,8 @@ Remove `_txns?.deleteAll();` and let the reset repository own the full reset pro
 ---
 
 ### 10. Low/Medium — Account transaction-existence check loads all transactions
+
+Status: **Done** — account transaction checks now use a DB-level limited query.
 
 File:
 - `lib/data/repositories/account_repository.dart`
@@ -248,6 +294,8 @@ SELECT EXISTS(
 
 ### 11. Low/Medium — Widget test is stale and failing
 
+Status: **Done** — the stale counter test has been replaced and the test suite passes.
+
 File:
 - `test/widget_test.dart`
 
@@ -269,15 +317,9 @@ Replace with app-specific tests, such as:
 
 ---
 
-## Suggested Fix Order
+## Remaining Fix Order
 
-1. Fix app reset so it deletes `subscription_events`.
-2. Remove `ConflictAlgorithm.replace` from account creation.
-3. Enable and define database foreign keys.
-4. Fix subscription paid-cycle duplicate protection.
-5. Replace the stale widget test and add DB/repository regression tests.
-6. Move account totals and ledger search/filter to DB-backed queries.
-7. Consider migrating money storage to integer minor units before the app accumulates real data.
+No known issue-tracker items remain open.
 
 ## Notes
 

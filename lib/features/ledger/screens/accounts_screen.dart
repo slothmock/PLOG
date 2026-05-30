@@ -34,9 +34,7 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
     final state = ref.watch(accountStateProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.accountsTitle),
-      ),
+      appBar: AppBar(title: const Text(AppStrings.accountsTitle)),
       body: _Body(
         state: state,
         onEdit: (acc) => _openAccountModal(context, account: acc),

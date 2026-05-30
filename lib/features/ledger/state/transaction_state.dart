@@ -36,6 +36,9 @@ class TransactionState extends ChangeNotifier {
 
   int _pageSize = 50;
   int _offset = 0;
+  int? _activeAccountId;
+  String? _activeCategory;
+  String? _activeSearchQuery;
 
   Future<void>? _inFlight;
 
@@ -81,7 +84,13 @@ class TransactionState extends ChangeNotifier {
         _offset = 0;
         _hasMore = true;
 
-        final page = await _repo.fetchPage(limit: _pageSize, offset: 0);
+        final page = await _repo.fetchPage(
+          limit: _pageSize,
+          offset: 0,
+          accountId: _activeAccountId,
+          category: _activeCategory,
+          searchQuery: _activeSearchQuery,
+        );
 
         _all
           ..clear()
@@ -105,6 +114,22 @@ class TransactionState extends ChangeNotifier {
     return f;
   }
 
+  Future<void> loadFiltered({
+    int? accountId,
+    String? category,
+    String? searchQuery,
+    int pageSize = 50,
+  }) async {
+    _activeAccountId = accountId;
+    _activeCategory = category;
+    _activeSearchQuery = searchQuery?.trim().isEmpty == true
+        ? null
+        : searchQuery?.trim();
+    _allLoaded = false;
+    _inFlight = null;
+    await loadAll(force: true, pageSize: pageSize);
+  }
+
   Future<void> loadMore() async {
     if (_loading || !_hasMore) return;
     if (!_allLoaded) {
@@ -117,7 +142,13 @@ class TransactionState extends ChangeNotifier {
     try {
       log.i('TransactionState.loadMore(limit=$_pageSize, offset=$_offset)');
 
-      final page = await _repo.fetchPage(limit: _pageSize, offset: _offset);
+      final page = await _repo.fetchPage(
+        limit: _pageSize,
+        offset: _offset,
+        accountId: _activeAccountId,
+        category: _activeCategory,
+        searchQuery: _activeSearchQuery,
+      );
 
       _all.addAll(page);
       _offset += page.length;

@@ -67,8 +67,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       category: AccountCategory.fiat,
     );
 
-
-    log.d('HomeScreen build: cash=$cashTotal, recentTxns=${recentTxns.length}, settings=${settingsState.settings}');
+    log.d(
+      'HomeScreen build: cash=$cashTotal, recentTxns=${recentTxns.length}, settings=${settingsState.settings}',
+    );
 
     final cs = Theme.of(context).colorScheme;
 
@@ -200,11 +201,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
                 SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 32),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 32,
+                  ),
                   sliver: SliverToBoxAdapter(
                     child: Column(
                       children: [
-                        KofiButton(text: AppStrings.supportSlothKofi, kofiName: "slothmock", kofiColor: KofiColor.Orange, onDonation: () => CustomInfoToast.show(context, message: AppStrings.thanksForSupport),),
+                        KofiButton(
+                          text: AppStrings.supportSlothKofi,
+                          kofiName: "slothmock",
+                          kofiColor: KofiColor.Orange,
+                          onDonation: () => CustomInfoToast.show(
+                            context,
+                            message: AppStrings.thanksForSupport,
+                          ),
+                        ),
                       ],
                     ),
                   ),

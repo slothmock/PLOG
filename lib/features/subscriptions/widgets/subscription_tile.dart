@@ -113,9 +113,9 @@ class _ActionsMenuState extends ConsumerState<_ActionsMenu> {
                 await showMsg('Subscription is paused', error: true);
                 return;
               }
-              final ok = await ref.read(subscriptionStateProvider).markPaid(
-                sub: widget.sub,
-              ); // implement in state
+              final ok = await ref
+                  .read(subscriptionStateProvider)
+                  .markPaid(sub: widget.sub); // implement in state
               if (!rootCtx.mounted) return;
               if (!ok) {
                 await showMsg(
@@ -131,10 +131,9 @@ class _ActionsMenuState extends ConsumerState<_ActionsMenu> {
 
           case _SubAction.snooze7:
             {
-              final ok = await ref.read(subscriptionStateProvider).snooze(
-                widget.sub,
-                days: 7,
-              ); // implement in state
+              final ok = await ref
+                  .read(subscriptionStateProvider)
+                  .snooze(widget.sub, days: 7); // implement in state
               if (!rootCtx.mounted) return;
               if (!ok) {
                 await showMsg(
@@ -150,7 +149,9 @@ class _ActionsMenuState extends ConsumerState<_ActionsMenu> {
 
           case _SubAction.skipOnce:
             {
-              final ok = await ref.read(subscriptionStateProvider).skipOnce(widget.sub); // implement in state
+              final ok = await ref
+                  .read(subscriptionStateProvider)
+                  .skipOnce(widget.sub); // implement in state
               if (!rootCtx.mounted) return;
               if (!ok) {
                 await showMsg(state.errorMessage ?? 'Skip failed', error: true);
@@ -198,7 +199,9 @@ class _ActionsMenuState extends ConsumerState<_ActionsMenu> {
 
               if (confirm != true) return;
 
-              final ok = await ref.read(subscriptionStateProvider).delete(widget.sub.id!);
+              final ok = await ref
+                  .read(subscriptionStateProvider)
+                  .delete(widget.sub.id!);
               if (!rootCtx.mounted) return;
 
               if (!ok) {

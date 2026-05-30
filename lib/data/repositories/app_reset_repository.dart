@@ -34,7 +34,7 @@ class AppResetRepository {
         'category': AccountCategory.fiat.dbValue,
         'type': AccountType.cash.dbValue,
         'currency': 'GBP',
-        'opening_balance': 0.0,
+        'opening_balance_minor': 0,
         'created_at': DateTime.now().millisecondsSinceEpoch,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
 

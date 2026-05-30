@@ -31,7 +31,10 @@ class BalanceCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(label, style: const TextStyle(fontSize: 12, color: Colors.black38)),
+                Text(
+                  label,
+                  style: const TextStyle(fontSize: 12, color: Colors.black38),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   CurrencyFormatter.compact(amount, symbol: currencySymbol),

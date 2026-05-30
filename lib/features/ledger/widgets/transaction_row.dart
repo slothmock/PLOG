@@ -49,8 +49,8 @@ class TransactionRow extends ConsumerWidget {
     final merchant = txn.merchant?.trim();
     final title = isTransfer
         ? ((txn.merchant?.trim().isNotEmpty ?? false)
-            ? txn.merchant!.trim()
-            : 'Transfer')
+              ? txn.merchant!.trim()
+              : 'Transfer')
         : ((merchant != null && merchant.isNotEmpty) ? merchant : txn.category);
 
     final subtitleLine1Parts = <String>[
@@ -104,7 +104,8 @@ class TransactionRow extends ConsumerWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          builder: (_) => TransactionDetailModal(txn: txn, hostContext: context),
+          builder: (_) =>
+              TransactionDetailModal(txn: txn, hostContext: context),
         );
       },
       onLongPress: enableDelete

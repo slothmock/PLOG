@@ -5,7 +5,6 @@ class BalanceRepository {
   BalanceRepository({DBService? db}) : _db = db ?? DBService();
   final DBService _db;
 
-
   Future<List<Map<String, Object?>>> fetchAccountBalanceRows() async {
     try {
       log.d('BalanceRepository.fetchAccountBalanceRows()');
@@ -17,7 +16,9 @@ class BalanceRepository {
       final totals = <int, double>{};
       for (final r in txnRows) {
         final id = (r['account_id'] as int);
-        final amt = (r['amount'] as num).toDouble();
+        final amt = DBService.fromMinorUnits(
+          (r['amount_minor'] as num).toInt(),
+        );
         totals[id] = (totals[id] ?? 0.0) + amt;
       }
 
@@ -33,11 +34,12 @@ class BalanceRepository {
           'category': a['category'],
           'type': a['type'],
           'currency': a['currency'],
-          'opening_balance': a['opening_balance'] ?? 0.0,
+          'opening_balance': DBService.fromMinorUnits(
+            ((a['opening_balance_minor'] ?? 0) as num).toInt(),
+          ),
           'txn_total': totals[id] ?? 0.0,
         });
       }
-
 
       rows.sort((x, y) {
         final a = (x['name'] as String? ?? '').toLowerCase();

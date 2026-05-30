@@ -137,7 +137,7 @@ class SubscriptionRepository {
         final txnId =
             existingTxnId ??
             await txn.insert('transactions', {
-              'amount': expenseAmount,
+              'amount_minor': DBService.toMinorUnits(expenseAmount),
               'category': subscriptionsCategory,
               'notes': (notes?.trim().isEmpty ?? true) ? null : notes!.trim(),
               'merchant': sub.name.trim(),
@@ -151,7 +151,7 @@ class SubscriptionRepository {
         await txn.insert('subscription_events', {
           'subscription_id': sub.id,
           'kind': 'paid',
-          'amount': raw,
+          'amount_minor': DBService.toMinorUnits(raw),
           'date': dt.millisecondsSinceEpoch,
           'due_date': dueMillis,
           'notes': (notes?.trim().isEmpty ?? true) ? null : notes!.trim(),
@@ -193,7 +193,7 @@ class SubscriptionRepository {
       await txn.insert('subscription_events', {
         'subscription_id': sub.id,
         'kind': 'skipped',
-        'amount': null,
+        'amount_minor': null,
         'date': dt.millisecondsSinceEpoch,
         'due_date': sub.nextDue.millisecondsSinceEpoch,
         'notes': notes,
@@ -222,7 +222,7 @@ class SubscriptionRepository {
       await txn.insert('subscription_events', {
         'subscription_id': sub.id,
         'kind': 'snoozed',
-        'amount': null,
+        'amount_minor': null,
         'date': dt.millisecondsSinceEpoch,
         'notes': notes ?? 'Snoozed $days days',
       });

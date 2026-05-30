@@ -23,8 +23,6 @@ enum AccountType {
   // Fiat
   cash,
   bank,
-
-
 }
 
 extension AccountTypeX on AccountType {

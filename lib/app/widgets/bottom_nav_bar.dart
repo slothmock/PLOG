@@ -35,10 +35,9 @@ class BottomNavBar extends StatelessWidget {
               onTap: () => onTap(1),
               activeColor: cs.primary,
             ),
-        
-        
+
             const SizedBox(width: 64),
-        
+
             _NavItem(
               icon: Icons.account_balance,
               label: 'Accounts',

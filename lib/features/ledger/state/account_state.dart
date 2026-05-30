@@ -39,7 +39,7 @@ class AccountState extends ChangeNotifier {
     notifyListeners();
   }
 
-    void setBalances(BalanceState balances) {
+  void setBalances(BalanceState balances) {
     _balances = balances;
   }
 

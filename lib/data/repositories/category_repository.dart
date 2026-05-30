@@ -22,9 +22,9 @@ class CategoryRepository {
   Future<int> usageCount(String name) => _db.countTransactionsForCategory(name);
 
   Future<void> reorder(List<String> orderedNames) async {
-  log.i('CategoryRepository.reorder(${orderedNames.length} categories)');
-  await _db.updateCategoryOrder(orderedNames);
-}
+    log.i('CategoryRepository.reorder(${orderedNames.length} categories)');
+    await _db.updateCategoryOrder(orderedNames);
+  }
 
   Future<void> delete(String name) => _db.deleteCategoryByName(name);
 }

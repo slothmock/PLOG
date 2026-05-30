@@ -6,12 +6,12 @@ import 'package:sloth_ledger/app/bootstrapbill/startup_provider.dart';
 import 'package:sloth_ledger/domain/transactions/transaction.dart';
 import 'package:sloth_ledger/features/ledger/ledger.dart';
 
-
 class AccountTxnRow extends ConsumerWidget {
   const AccountTxnRow({
     super.key,
     required this.txn,
-    required this.currencySymbol, this.runningBalance,
+    required this.currencySymbol,
+    this.runningBalance,
   });
 
   final double? runningBalance;
@@ -69,7 +69,9 @@ class AccountTxnRow extends ConsumerWidget {
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
                 onPressed: () {
                   Navigator.pop(dialogContext);
-                  ref.read(transactionStateProvider).deleteWithUndo(context, txn);
+                  ref
+                      .read(transactionStateProvider)
+                      .deleteWithUndo(context, txn);
                 },
                 child: const Text('Delete'),
               ),

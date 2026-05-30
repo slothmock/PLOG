@@ -57,6 +57,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     super.dispose();
   }
 
+  void _loadCurrentLedgerQuery() {
+    ref
+        .read(transactionStateProvider)
+        .loadFiltered(
+          accountId: _accountId,
+          category: _category,
+          searchQuery: _queryApplied,
+        );
+  }
+
   void _onSearchChanged(String v) {
     _queryRaw = v;
 
@@ -64,6 +74,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     _searchDebounce = Timer(const Duration(milliseconds: _debounceMs), () {
       if (!mounted) return;
       setState(() => _queryApplied = _queryRaw);
+      _loadCurrentLedgerQuery();
     });
   }
 
@@ -74,6 +85,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       _queryApplied = '';
       _searchController.clear();
     });
+    _loadCurrentLedgerQuery();
   }
 
   void _openFilters(BuildContext context, WidgetRef ref) {
@@ -162,6 +174,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 _accountId = null;
                                 _category = null;
                               });
+                              _loadCurrentLedgerQuery();
                               Navigator.pop(context);
                             },
                             child: const Text('Clear'),
@@ -175,6 +188,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 _accountId = accountId;
                                 _category = category;
                               });
+                              _loadCurrentLedgerQuery();
                               Navigator.pop(context);
                             },
                             child: const Text('Apply'),
@@ -295,22 +309,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
     final accountState = ref.watch(accountStateProvider);
 
-    final base = txnState.filteredAll(
-      accountId: _accountId,
-      category: _category,
-    );
+    final base = txnState.all;
 
     final hasSearch = _normalizeQuery(_queryApplied).isNotEmpty;
     final hasFilters = _accountId != null || _category != null;
     final isTrulyEmpty = txnState.all.isEmpty;
-
-    if ((hasSearch || hasFilters) && txnState.hasMore && !txnState.loading) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ref.read(transactionStateProvider).ensureAllLoaded();
-        }
-      });
-    }
 
     final searched = _applySearch(base, accountState);
     final collapsed = collapseTransfers(searched, accountState);

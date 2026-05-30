@@ -13,7 +13,8 @@ class AddTransactionModal extends ConsumerStatefulWidget {
   const AddTransactionModal({super.key, this.transaction});
 
   @override
-  ConsumerState<AddTransactionModal> createState() => _AddTransactionModalState();
+  ConsumerState<AddTransactionModal> createState() =>
+      _AddTransactionModalState();
 }
 
 class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
@@ -139,7 +140,10 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     if (!mounted) return;
 
     if (!ok) {
-      ErrorToast.show(context, message: state.errorMessage ?? 'Operation failed');
+      ErrorToast.show(
+        context,
+        message: state.errorMessage ?? 'Operation failed',
+      );
       state.clearError();
       return;
     }
@@ -254,7 +258,9 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
 
                   const SizedBox(height: 8),
                   ListTile(
-                    contentPadding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width / 2 - 100),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: MediaQuery.of(context).size.width / 2 - 100,
+                    ),
                     leading: const Icon(Icons.schedule),
                     title: Text(DateFormat.yMMMd().add_jm().format(_date)),
                     onTap: () async {
@@ -325,8 +331,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
                   TextField(
                     controller: _notesController,
                     decoration: const InputDecoration(
-                      labelText:
-                          'Notes/Memo',
+                      labelText: 'Notes/Memo',
                       border: OutlineInputBorder(),
                     ),
                   ),

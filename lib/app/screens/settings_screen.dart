@@ -8,10 +8,8 @@ import 'package:sloth_ledger/app/utils/consts.dart';
 import 'package:sloth_ledger/app/widgets/categories_settings_section.dart';
 import 'package:sloth_ledger/app/widgets/info_toast.dart';
 
-
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
-
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,8 +61,6 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-
-
   void _confirmDeleteTransactions(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
@@ -89,10 +85,7 @@ class SettingsScreen extends ConsumerWidget {
               await ref.read(transactionStateProvider).loadAll(force: true);
 
               if (!context.mounted) return;
-              CustomInfoToast.show(
-                context,
-                message: AppStrings.historyDeleted,
-              );
+              CustomInfoToast.show(context, message: AppStrings.historyDeleted);
             },
           ),
         ],
@@ -125,7 +118,9 @@ class SettingsScreen extends ConsumerWidget {
                       : () async {
                           Navigator.pop(dialogContext);
 
-                          final ok = await ref.read(appResetStateProvider).reset();
+                          final ok = await ref
+                              .read(appResetStateProvider)
+                              .reset();
 
                           if (!context.mounted) return;
 
