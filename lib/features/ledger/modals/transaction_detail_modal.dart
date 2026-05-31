@@ -5,6 +5,7 @@ import 'package:sloth_ledger/app/bootstrapbill/startup_provider.dart';
 
 import 'package:sloth_ledger/domain/transactions/transaction.dart';
 import 'package:sloth_ledger/features/ledger/modals/add_transaction_modal.dart';
+import 'package:sloth_ledger/features/ledger/widgets/transaction_row_helpers.dart';
 
 class TransactionDetailModal extends ConsumerStatefulWidget {
   const TransactionDetailModal({
@@ -136,9 +137,11 @@ class _TransactionDetailModalState
 
                         Navigator.pop(context);
 
-                        await ref
-                            .read(transactionStateProvider)
-                            .deleteWithUndo(navigator.context, widget.txn);
+                        await deleteTransactionWithUndo(
+                          context: navigator.context,
+                          ref: ref,
+                          txn: widget.txn,
+                        );
                       },
                     ),
                   ),

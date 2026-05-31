@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sloth_ledger/app/bootstrapbill/startup_provider.dart';
+import 'package:sloth_ledger/app/widgets/undo_toast.dart';
 import 'package:sloth_ledger/domain/transactions/transaction.dart';
 
 bool isTransferTransaction(SlothTransaction txn) {
@@ -45,6 +46,29 @@ TextStyle transactionAmountTextStyle(
   );
 }
 
+Future<void> deleteTransactionWithUndo({
+  required BuildContext context,
+  required WidgetRef ref,
+  required SlothTransaction txn,
+}) async {
+  final undoToastContext = Navigator.of(context, rootNavigator: true).context;
+  final transactionState = ref.read(transactionStateProvider);
+
+  final result = await transactionState.deleteForUndo(txn);
+  if (!result.deleted || !undoToastContext.mounted) return;
+
+  final undone = await UndoToast.show(
+    undoToastContext,
+    message: result.undoMessage,
+    duration: const Duration(seconds: 4),
+    showAtTop: true,
+  );
+
+  if (undone) {
+    await transactionState.restoreDeleted(result);
+  }
+}
+
 Future<void> showDeleteTransactionDialog({
   required BuildContext context,
   required WidgetRef ref,
@@ -62,16 +86,13 @@ Future<void> showDeleteTransactionDialog({
         ),
         TextButton(
           style: TextButton.styleFrom(foregroundColor: Colors.red),
-          onPressed: () {
-            final undoToastContext = Navigator.of(
-              context,
-              rootNavigator: true,
-            ).context;
-
+          onPressed: () async {
             Navigator.pop(dialogContext);
-            ref
-                .read(transactionStateProvider)
-                .deleteWithUndo(undoToastContext, txn);
+            await deleteTransactionWithUndo(
+              context: context,
+              ref: ref,
+              txn: txn,
+            );
           },
           child: const Text('Delete'),
         ),

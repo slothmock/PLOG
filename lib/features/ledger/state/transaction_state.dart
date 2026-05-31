@@ -1,9 +1,28 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:sloth_ledger/app/logging/app_logger.dart';
 import 'package:sloth_ledger/data/repositories/transaction_repository.dart';
 import 'package:sloth_ledger/domain/transactions/transaction.dart';
-import 'package:sloth_ledger/app/widgets/undo_toast.dart';
 import 'package:sloth_ledger/features/ledger/state/balance_state.dart';
+
+class DeleteTransactionResult {
+  const DeleteTransactionResult({
+    required this.deleted,
+    required this.isTransfer,
+    required this.deletedTransactions,
+  });
+
+  const DeleteTransactionResult.notDeleted()
+    : deleted = false,
+      isTransfer = false,
+      deletedTransactions = const [];
+
+  final bool deleted;
+  final bool isTransfer;
+  final List<SlothTransaction> deletedTransactions;
+
+  String get undoMessage =>
+      isTransfer ? 'Transfer deleted' : 'Transaction deleted';
+}
 
 class TransactionState extends ChangeNotifier {
   BalanceState _balances;
@@ -315,14 +334,11 @@ class TransactionState extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteWithUndo(
-    BuildContext context,
-    SlothTransaction txn,
-  ) async {
+  Future<DeleteTransactionResult> deleteForUndo(SlothTransaction txn) async {
     _setError(null);
 
     // optional safety: block re-entry
-    if (_loading) return;
+    if (_loading) return const DeleteTransactionResult.notDeleted();
 
     _setLoading(true);
 
@@ -342,7 +358,7 @@ class TransactionState extends ChangeNotifier {
       } else {
         if (txn.id == null) {
           _setError('Cannot delete: missing transaction id.');
-          return;
+          return const DeleteTransactionResult.notDeleted();
         }
 
         deleted = [txn];
@@ -350,35 +366,48 @@ class TransactionState extends ChangeNotifier {
       }
       if (rowsAffected <= 0) {
         _setError('Nothing was deleted (already removed).');
-        return;
+        return const DeleteTransactionResult.notDeleted();
       }
 
       await _afterMutation();
 
-      if (!context.mounted) return;
-
-      final undone = await UndoToast.show(
-        context,
-        message: isTransfer ? 'Transfer deleted' : 'Transaction deleted',
-        duration: const Duration(seconds: 4),
-        showAtTop: true,
+      return DeleteTransactionResult(
+        deleted: true,
+        isTransfer: isTransfer,
+        deletedTransactions: List.unmodifiable(deleted),
       );
+    } catch (e, st) {
+      log.e(
+        'TransactionState.deleteForUndo() failed',
+        error: e,
+        stackTrace: st,
+      );
+      _setError('Failed to delete transaction.');
+      return const DeleteTransactionResult.notDeleted();
+    } finally {
+      _setLoading(false);
+    }
+  }
 
-      if (!undone) return;
+  Future<void> restoreDeleted(DeleteTransactionResult result) async {
+    if (!result.deleted || result.deletedTransactions.isEmpty) return;
 
+    _setError(null);
+    _setLoading(true);
+
+    try {
       // restore only what we actually deleted
-      _setLoading(true);
-      for (final t in deleted) {
+      for (final t in result.deletedTransactions) {
         await _repo.restore(t);
       }
       await _afterMutation();
     } catch (e, st) {
       log.e(
-        'TransactionState.deleteWithUndo() failed',
+        'TransactionState.restoreDeleted() failed',
         error: e,
         stackTrace: st,
       );
-      _setError('Failed to delete transaction.');
+      _setError('Failed to restore transaction.');
     } finally {
       _setLoading(false);
     }
