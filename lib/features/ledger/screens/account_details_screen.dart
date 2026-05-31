@@ -57,18 +57,36 @@ class AccountDetailScreen extends ConsumerStatefulWidget {
 
 class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadAccountHistory());
+  }
+
+  @override
+  void didUpdateWidget(covariant AccountDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.account.id != widget.account.id) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _loadAccountHistory(),
+      );
+    }
+  }
+
+  Future<void> _loadAccountHistory() async {
+    if (!mounted) return;
+    final accountId = widget.account.id;
+    if (accountId == null) return;
+
+    final txns = ref.read(transactionStateProvider);
+    await txns.loadFiltered(accountId: accountId);
+    await txns.ensureAllLoaded();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final mode = _metricModeFor(widget.account);
 
     final txnState = ref.watch(transactionStateProvider);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!txnState.loading && txnState.all.isEmpty) {
-        ref.read(transactionStateProvider).loadAll();
-      } else if (!txnState.loading && txnState.hasMore) {
-        ref.read(transactionStateProvider).ensureAllLoaded();
-      }
-    });
 
     final balances = ref.watch(balanceStateProvider);
     final settings = ref.read(settingsStateProvider).settings;

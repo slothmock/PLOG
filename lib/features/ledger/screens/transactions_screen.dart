@@ -404,12 +404,18 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         label: Text(
                           'Account: ${accountState.byId(_accountId!)?.name ?? _accountId}',
                         ),
-                        onDeleted: () => setState(() => _accountId = null),
+                        onDeleted: () {
+                          setState(() => _accountId = null);
+                          _loadCurrentLedgerQuery();
+                        },
                       ),
                     if (_category != null)
                       Chip(
                         label: Text('Category: $_category'),
-                        onDeleted: () => setState(() => _category = null),
+                        onDeleted: () {
+                          setState(() => _category = null);
+                          _loadCurrentLedgerQuery();
+                        },
                       ),
                     if (_normalizeQuery(_queryApplied).isNotEmpty)
                       Chip(
@@ -420,6 +426,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             _queryApplied = '';
                             _searchController.clear();
                           });
+                          _loadCurrentLedgerQuery();
                         },
                       ),
                   ],
@@ -546,6 +553,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                           _accountId = null;
                                           _category = null;
                                         });
+                                        _loadCurrentLedgerQuery();
                                       },
                                       child: const Text('Clear filters'),
                                     ),
@@ -572,6 +580,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                           _queryApplied = '';
                                           _searchController.clear();
                                         });
+                                        _loadCurrentLedgerQuery();
                                       },
                                       child: const Text('Clear search'),
                                     ),

@@ -83,14 +83,11 @@ class _TransferModalState extends ConsumerState<TransferModal> {
   SlothAccount? _acc(AccountState s, int? id) => id == null ? null : s.byId(id);
 
   List<SlothAccount> _eligibleToAccounts(AccountState s, SlothAccount from) {
-    // Same category + same currency, not the same account.
+    // Same currency, not the same account. Cross-category transfers are needed
+    // for repayments such as bank account -> credit card/loan.
     return s.accounts
         .where(
-          (a) =>
-              a.id != null &&
-              a.id != from.id &&
-              a.category == from.category &&
-              a.currency == from.currency,
+          (a) => a.id != null && a.id != from.id && a.currency == from.currency,
         )
         .toList()
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
@@ -121,11 +118,12 @@ class _TransferModalState extends ConsumerState<TransferModal> {
       return;
     }
 
-    // Enforce same category + currency (your definition)
-    if (from.category != to.category || from.currency != to.currency) {
+    // Transfers can cross asset/liability categories, but must stay within one
+    // currency so the amount has the same meaning on both sides.
+    if (from.currency != to.currency) {
       ErrorToast.show(
         context,
-        message: 'Transfers must be within the same category and currency',
+        message: 'Transfers must use accounts with the same currency',
       );
       return;
     }
@@ -256,8 +254,8 @@ class _TransferModalState extends ConsumerState<TransferModal> {
                       helperText: (from == null)
                           ? 'Select a From account first'
                           : (toCandidates.isEmpty)
-                          ? 'No eligible accounts (same category + currency)'
-                          : 'Same category + currency only',
+                          ? 'No eligible accounts in ${from.currency}'
+                          : 'Same currency only',
                     ),
                   ),
 

@@ -339,6 +339,74 @@ void main() {
     },
   );
 
+  test(
+    'paid subscription event can relink a transaction after its linked transaction is deleted',
+    () async {
+      await resetForTest();
+      final database = await db.db;
+      final cashId =
+          (await database.query(
+                'accounts',
+                columns: ['id'],
+                where: 'name = ?',
+                whereArgs: ['Cash'],
+                limit: 1,
+              )).single['id']!
+              as int;
+
+      final due = DateTime(2026, 1, 31);
+      final subId = await db.insertSubscription(
+        name: 'Streaming',
+        amount: 12,
+        currency: 'GBP',
+        interval: SubscriptionInterval.monthly.dbValue,
+        nextDueMillis: due.millisecondsSinceEpoch,
+        accountId: cashId,
+      );
+      final sub = SlothSubscription(
+        id: subId,
+        name: 'Streaming',
+        amount: 12,
+        currency: 'GBP',
+        interval: SubscriptionInterval.monthly,
+        nextDue: due,
+        accountId: cashId,
+        isActive: true,
+      );
+      final repo = SubscriptionRepository(db: db);
+
+      final firstTxnId = await repo.markPaidAndCreateTxn(
+        sub: sub,
+        paidAt: DateTime(2026, 1, 1),
+      );
+      expect(firstTxnId, isNotNull);
+
+      await database.delete(
+        'transactions',
+        where: 'id = ?',
+        whereArgs: [firstTxnId],
+      );
+
+      final unlinkedEvent = (await database.query(
+        'subscription_events',
+      )).single;
+      expect(unlinkedEvent['txn_id'], isNull);
+
+      final relinkedTxnId = await repo.markPaidAndCreateTxn(
+        sub: sub,
+        paidAt: DateTime(2026, 1, 2),
+      );
+
+      expect(relinkedTxnId, isNotNull);
+      expect(relinkedTxnId, isNot(firstTxnId));
+
+      final events = await database.query('subscription_events');
+      expect(events, hasLength(1));
+      expect(events.single['txn_id'], relinkedTxnId);
+      expect(await _count(database, 'transactions'), 1);
+    },
+  );
+
   test('transaction search filters before paging', () async {
     await resetForTest();
     final database = await db.db;
@@ -377,6 +445,50 @@ void main() {
 
     expect(results, hasLength(1));
     expect(results.single.merchant, 'Needle Gym');
+  });
+
+  test('transaction date search filters before paging', () async {
+    await resetForTest();
+    final database = await db.db;
+    final cashId =
+        (await database.query(
+              'accounts',
+              columns: ['id'],
+              where: 'name = ?',
+              whereArgs: ['Cash'],
+              limit: 1,
+            )).single['id']!
+            as int;
+
+    for (var i = 0; i < 30; i++) {
+      await db.insertTransaction(
+        amount: -1,
+        category: 'Groceries',
+        merchant: 'Filler $i',
+        dateMillis: DateTime(2026, 3, i + 1).millisecondsSinceEpoch,
+        accountId: cashId,
+      );
+    }
+
+    await db.insertTransaction(
+      amount: -7.50,
+      category: 'Coffee',
+      merchant: 'Old Month Match',
+      dateMillis: DateTime(2026, 2, 6).millisecondsSinceEpoch,
+      accountId: cashId,
+    );
+
+    final monthNameResults = await TransactionRepository(
+      db: db,
+    ).fetchPage(limit: 10, offset: 0, searchQuery: 'feb');
+    final numericMonthResults = await TransactionRepository(
+      db: db,
+    ).fetchPage(limit: 10, offset: 0, searchQuery: '2026-02');
+
+    expect(monthNameResults, hasLength(1));
+    expect(monthNameResults.single.merchant, 'Old Month Match');
+    expect(numericMonthResults, hasLength(1));
+    expect(numericMonthResults.single.merchant, 'Old Month Match');
   });
 }
 

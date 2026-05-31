@@ -63,16 +63,16 @@ class BalanceState extends ChangeNotifier {
 
           final opening = ((r['opening_balance'] ?? 0) as num).toDouble();
           final txnTotal = ((r['txn_total'] ?? 0) as num).toDouble();
-          final balance = opening + txnTotal;
+          final balance = switch (category) {
+            AccountCategory.asset => opening + txnTotal,
+            AccountCategory.liability => opening - txnTotal,
+          };
 
           accountBalances[id] = balance;
 
           final bucket = totalsByCurrency.putIfAbsent(
             currency,
-            () => {
-              AccountCategory.asset: 0.0,
-              AccountCategory.liability: 0.0,
-            },
+            () => {AccountCategory.asset: 0.0, AccountCategory.liability: 0.0},
           );
 
           bucket[category] = (bucket[category] ?? 0.0) + balance;
@@ -81,7 +81,11 @@ class BalanceState extends ChangeNotifier {
         _accountBalances = accountBalances;
         _totalsByCurrency = totalsByCurrency;
       } catch (e, st) {
-        log.e('BalanceState.load() failed', error: e, stackTrace: st);
+        log.e(
+          'BalanceState.load() failed',
+          error: safeLogError(e),
+          stackTrace: st,
+        );
         _errorMessage = 'Failed to load balances.';
       } finally {
         _loading = false;

@@ -11,3 +11,5 @@ final log = Logger(
     printEmojis: !kReleaseMode,
   ),
 );
+
+String safeLogError(Object error) => error.runtimeType.toString();

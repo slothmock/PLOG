@@ -119,7 +119,11 @@ class TransactionState extends ChangeNotifier {
         _allLoaded = true;
         _hasMore = page.length == _pageSize;
       } catch (e, st) {
-        log.e('TransactionState.loadAll() failed', error: e, stackTrace: st);
+        log.e(
+          'TransactionState.loadAll() failed',
+          error: safeLogError(e),
+          stackTrace: st,
+        );
         _setError('Failed to load transactions.');
       } finally {
         _refreshingAll = false;
@@ -174,7 +178,11 @@ class TransactionState extends ChangeNotifier {
 
       _hasMore = page.length == _pageSize;
     } catch (e, st) {
-      log.e('TransactionState.loadMore() failed', error: e, stackTrace: st);
+      log.e(
+        'TransactionState.loadMore() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to load more transactions.');
     } finally {
       _setLoading(false);
@@ -243,7 +251,11 @@ class TransactionState extends ChangeNotifier {
       await _afterMutation();
       return true;
     } catch (e, st) {
-      log.e('TransactionState.create() failed', error: e, stackTrace: st);
+      log.e(
+        'TransactionState.create() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to add transaction.');
       return false;
     } finally {
@@ -283,7 +295,11 @@ class TransactionState extends ChangeNotifier {
       await _afterMutation();
       return true;
     } catch (e, st) {
-      log.e('TransactionState.update() failed', error: e, stackTrace: st);
+      log.e(
+        'TransactionState.update() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to update transaction.');
       return false;
     } finally {
@@ -302,7 +318,11 @@ class TransactionState extends ChangeNotifier {
       await _afterMutation();
       return true;
     } catch (e, st) {
-      log.e('TransactionState.delete() failed', error: e, stackTrace: st);
+      log.e(
+        'TransactionState.delete() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to delete transaction.');
       return false;
     } finally {
@@ -326,7 +346,11 @@ class TransactionState extends ChangeNotifier {
 
       await _balances.load(force: true);
     } catch (e, st) {
-      log.e('TransactionState.deleteAll() failed', error: e, stackTrace: st);
+      log.e(
+        'TransactionState.deleteAll() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to delete transaction history.');
     } finally {
       _setLoading(false);
@@ -379,7 +403,7 @@ class TransactionState extends ChangeNotifier {
     } catch (e, st) {
       log.e(
         'TransactionState.deleteForUndo() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       _setError('Failed to delete transaction.');
@@ -404,7 +428,7 @@ class TransactionState extends ChangeNotifier {
     } catch (e, st) {
       log.e(
         'TransactionState.restoreDeleted() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       _setError('Failed to restore transaction.');
@@ -456,7 +480,11 @@ class TransactionState extends ChangeNotifier {
       await _afterMutation();
       return true;
     } catch (e, st) {
-      log.e('TransactionState.transfer() failed', error: e, stackTrace: st);
+      log.e(
+        'TransactionState.transfer() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Transfer failed.');
       return false;
     } finally {

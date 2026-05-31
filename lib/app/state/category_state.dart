@@ -49,7 +49,11 @@ class CategoryState extends ChangeNotifier {
         final result = await _repo.fetchAll();
         _categories = result;
       } catch (e, st) {
-        log.e('CategoryState.load() failed', error: e, stackTrace: st);
+        log.e(
+          'CategoryState.load() failed',
+          error: safeLogError(e),
+          stackTrace: st,
+        );
         _setError('Failed to load categories.');
       } finally {
         _setLoading(false);
@@ -74,14 +78,18 @@ class CategoryState extends ChangeNotifier {
     _setLoading(true);
 
     try {
-      log.i('CategoryState.add("$trimmed")');
+      log.i('CategoryState.add()');
 
       await _repo.create(trimmed);
       await load(force: true);
 
       return true;
     } catch (e, st) {
-      log.e('CategoryState.add() failed', error: e, stackTrace: st);
+      log.e(
+        'CategoryState.add() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to add category.');
       return false;
     } finally {
@@ -107,14 +115,18 @@ class CategoryState extends ChangeNotifier {
     _setLoading(true);
 
     try {
-      log.i('CategoryState.rename("$oldName" -> "$newName")');
+      log.i('CategoryState.rename()');
 
       await _repo.rename(oldName, newName);
       await load(force: true);
 
       return true;
     } catch (e, st) {
-      log.e('CategoryState.rename() failed', error: e, stackTrace: st);
+      log.e(
+        'CategoryState.rename() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to rename category.');
       return false;
     } finally {
@@ -134,7 +146,11 @@ class CategoryState extends ChangeNotifier {
 
       return true;
     } catch (e, st) {
-      log.e('CategoryState.reorder() failed', error: e, stackTrace: st);
+      log.e(
+        'CategoryState.reorder() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to reorder categories.');
       return false;
     }
@@ -152,7 +168,7 @@ class CategoryState extends ChangeNotifier {
     _setLoading(true);
 
     try {
-      log.w('CategoryState.deleteWithRules("$trimmed")');
+      log.w('CategoryState.deleteWithRules()');
 
       if (trimmed == 'Subscriptions') {
         return '"Subscriptions" category can\'t be deleted.';
@@ -169,7 +185,11 @@ class CategoryState extends ChangeNotifier {
 
       return null;
     } catch (e, st) {
-      log.e('CategoryState.deleteWithRules() failed', error: e, stackTrace: st);
+      log.e(
+        'CategoryState.deleteWithRules() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to delete category.');
       return 'Failed to delete category.';
     } finally {

@@ -71,7 +71,11 @@ class AppResetState extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e, st) {
-      log.e('AppResetState.reset() failed', error: e, stackTrace: st);
+      log.e(
+        'AppResetState.reset() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _error = 'Reset failed.';
       _loading = false;
       notifyListeners();

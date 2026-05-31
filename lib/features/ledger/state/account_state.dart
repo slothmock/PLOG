@@ -59,7 +59,11 @@ class AccountState extends ChangeNotifier {
         final result = await _repo.fetchAll();
         _accounts = result;
       } catch (e, st) {
-        log.e('AccountState.load() failed', error: e, stackTrace: st);
+        log.e(
+          'AccountState.load() failed',
+          error: safeLogError(e),
+          stackTrace: st,
+        );
         _setError('Failed to load accounts.');
       } finally {
         _setLoading(false);
@@ -112,7 +116,11 @@ class AccountState extends ChangeNotifier {
 
       return true;
     } catch (e, st) {
-      log.e('AccountState.create() failed', error: e, stackTrace: st);
+      log.e(
+        'AccountState.create() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to add account.');
       return false;
     } finally {
@@ -161,7 +169,11 @@ class AccountState extends ChangeNotifier {
 
       return true;
     } catch (e, st) {
-      log.e('AccountState.update() failed', error: e, stackTrace: st);
+      log.e(
+        'AccountState.update() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to update account.');
       return false;
     } finally {
@@ -207,7 +219,11 @@ class AccountState extends ChangeNotifier {
       await _balances.load(force: true);
       return null;
     } catch (e, st) {
-      log.e('AccountState.deleteWithRules() failed', error: e, stackTrace: st);
+      log.e(
+        'AccountState.deleteWithRules() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to delete account.');
       _setLoading(false);
       notifyListeners();

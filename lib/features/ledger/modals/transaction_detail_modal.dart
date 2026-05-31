@@ -94,63 +94,71 @@ class _TransactionDetailModalState
 
               const SizedBox(height: 16),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.edit),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueGrey,
-                        foregroundColor: Colors.white,
+              if (widget.txn.isTransfer) ...[
+                const Text(
+                  'Transfers cannot be edited safely yet; delete and recreate the transfer instead.',
+                  style: TextStyle(color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                SizedBox(width: double.infinity, child: _deleteButton(context)),
+              ] else
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.edit),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueGrey,
+                          foregroundColor: Colors.white,
+                        ),
+                        label: const Text('Edit'),
+                        onPressed: () async {
+                          Navigator.pop(context);
+
+                          await showModalBottomSheet(
+                            context: widget.hostContext,
+                            isScrollControlled: true,
+                            useSafeArea: true,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            builder: (_) =>
+                                AddTransactionModal(transaction: widget.txn),
+                          );
+                        },
                       ),
-                      label: const Text('Edit'),
-                      onPressed: () async {
-                        Navigator.pop(context);
-
-                        await showModalBottomSheet(
-                          context: widget.hostContext,
-                          isScrollControlled: true,
-                          useSafeArea: true,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          builder: (_) =>
-                              AddTransactionModal(transaction: widget.txn),
-                        );
-                      },
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                      icon: const Icon(Icons.delete),
-                      label: const Text('Delete'),
-                      onPressed: () async {
-                        final navigator = Navigator.of(
-                          widget.hostContext,
-                          rootNavigator: true,
-                        );
-
-                        Navigator.pop(context);
-
-                        await deleteTransactionWithUndo(
-                          context: navigator.context,
-                          ref: ref,
-                          txn: widget.txn,
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 12),
+                    Expanded(child: _deleteButton(context)),
+                  ],
+                ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _deleteButton(BuildContext context) {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.red,
+        foregroundColor: Colors.white,
+      ),
+      icon: const Icon(Icons.delete),
+      label: const Text('Delete'),
+      onPressed: () async {
+        final navigator = Navigator.of(widget.hostContext, rootNavigator: true);
+
+        Navigator.pop(context);
+
+        await deleteTransactionWithUndo(
+          context: navigator.context,
+          ref: ref,
+          txn: widget.txn,
+        );
+      },
     );
   }
 

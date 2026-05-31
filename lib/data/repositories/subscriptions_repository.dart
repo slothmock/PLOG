@@ -14,7 +14,7 @@ class SubscriptionRepository {
     } catch (e, st) {
       log.e(
         'SubscriptionRepository.fetchAll() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       rethrow;
@@ -41,7 +41,11 @@ class SubscriptionRepository {
         isActive: isActive,
       );
     } catch (e, st) {
-      log.e('SubscriptionRepository.create() failed', error: e, stackTrace: st);
+      log.e(
+        'SubscriptionRepository.create() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -50,7 +54,11 @@ class SubscriptionRepository {
     try {
       await _db.updateSubscription(id, patch);
     } catch (e, st) {
-      log.e('SubscriptionRepository.update() failed', error: e, stackTrace: st);
+      log.e(
+        'SubscriptionRepository.update() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -59,7 +67,11 @@ class SubscriptionRepository {
     try {
       await _db.deleteSubscription(id);
     } catch (e, st) {
-      log.e('SubscriptionRepository.delete() failed', error: e, stackTrace: st);
+      log.e(
+        'SubscriptionRepository.delete() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -82,7 +94,7 @@ class SubscriptionRepository {
     } catch (e, st) {
       log.e(
         'SubscriptionRepository.markPaid() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       rethrow;
@@ -119,6 +131,7 @@ class SubscriptionRepository {
       int? createdTxnId;
 
       await database.transaction((txn) async {
+        int? existingEventId;
         if (!force) {
           final existing = await txn.query(
             'subscription_events',
@@ -129,8 +142,12 @@ class SubscriptionRepository {
           );
 
           if (existing.isNotEmpty) {
-            createdTxnId = null;
-            return;
+            final existingTxnId = existing.single['txn_id'] as int?;
+            if (existingTxnId != null) {
+              createdTxnId = null;
+              return;
+            }
+            existingEventId = existing.single['id'] as int;
           }
         }
 
@@ -147,6 +164,21 @@ class SubscriptionRepository {
             });
 
         createdTxnId = txnId;
+
+        if (existingEventId != null) {
+          await txn.update(
+            'subscription_events',
+            {
+              'amount_minor': DBService.toMinorUnits(raw),
+              'date': dt.millisecondsSinceEpoch,
+              'notes': (notes?.trim().isEmpty ?? true) ? null : notes!.trim(),
+              'txn_id': txnId,
+            },
+            where: 'id = ?',
+            whereArgs: [existingEventId],
+          );
+          return;
+        }
 
         await txn.insert('subscription_events', {
           'subscription_id': sub.id,
@@ -173,7 +205,7 @@ class SubscriptionRepository {
     } catch (e, st) {
       log.e(
         'SubscriptionRepository.markPaidAndCreateTxn() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       rethrow;

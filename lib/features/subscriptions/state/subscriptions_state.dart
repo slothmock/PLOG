@@ -51,7 +51,11 @@ class SubscriptionState extends ChangeNotifier {
         // Sort by next due date ascending
         _all.sort((a, b) => a.nextDue.compareTo(b.nextDue));
       } catch (e, st) {
-        log.e('SubscriptionState.load() failed', error: e, stackTrace: st);
+        log.e(
+          'SubscriptionState.load() failed',
+          error: safeLogError(e),
+          stackTrace: st,
+        );
         _setError('Failed to load subscriptions.');
       } finally {
         _setLoading(false);
@@ -97,7 +101,11 @@ class SubscriptionState extends ChangeNotifier {
       await load(force: true);
       return true;
     } catch (e, st) {
-      log.e('SubscriptionState.create() failed', error: e, stackTrace: st);
+      log.e(
+        'SubscriptionState.create() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to add subscription.');
       return false;
     } finally {
@@ -144,7 +152,11 @@ class SubscriptionState extends ChangeNotifier {
       await load(force: true);
       return true;
     } catch (e, st) {
-      log.e('SubscriptionState.update() failed', error: e, stackTrace: st);
+      log.e(
+        'SubscriptionState.update() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to update subscription.');
       return false;
     } finally {
@@ -167,7 +179,11 @@ class SubscriptionState extends ChangeNotifier {
       await load(force: true);
       return true;
     } catch (e, st) {
-      log.e('SubscriptionState.delete() failed', error: e, stackTrace: st);
+      log.e(
+        'SubscriptionState.delete() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to delete subscription.');
       return false;
     } finally {
@@ -202,7 +218,11 @@ class SubscriptionState extends ChangeNotifier {
       await load(force: true);
       return true;
     } catch (e, st) {
-      log.e('SubscriptionState.markPaid() failed', error: e, stackTrace: st);
+      log.e(
+        'SubscriptionState.markPaid() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to mark subscription as paid.');
       return false;
     } finally {
@@ -218,7 +238,11 @@ class SubscriptionState extends ChangeNotifier {
       await load(force: true);
       return true;
     } catch (e, st) {
-      log.e('SubscriptionState.skipOnce() failed', error: e, stackTrace: st);
+      log.e(
+        'SubscriptionState.skipOnce() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to skip.');
       return false;
     } finally {
@@ -234,7 +258,11 @@ class SubscriptionState extends ChangeNotifier {
       await load(force: true);
       return true;
     } catch (e, st) {
-      log.e('SubscriptionState.snooze() failed', error: e, stackTrace: st);
+      log.e(
+        'SubscriptionState.snooze() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       _setError('Failed to snooze.');
       return false;
     } finally {

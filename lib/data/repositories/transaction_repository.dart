@@ -16,7 +16,7 @@ class TransactionRepository {
     } catch (e, st) {
       log.e(
         'TransactionRepository.fetchAll() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       rethrow;
@@ -46,7 +46,7 @@ class TransactionRepository {
     } catch (e, st) {
       log.e(
         'TransactionRepository.fetchIncome() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       rethrow;
@@ -60,7 +60,7 @@ class TransactionRepository {
     } catch (e, st) {
       log.e(
         'TransactionRepository.fetchExpenses() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       rethrow;
@@ -76,9 +76,7 @@ class TransactionRepository {
     required int accountId,
   }) async {
     try {
-      log.i(
-        'TransactionRepository.create(amount=$amount, category="$category", accountId=$accountId)',
-      );
+      log.i('TransactionRepository.create()');
       await _db.insertTransaction(
         amount: amount,
         category: category,
@@ -88,7 +86,11 @@ class TransactionRepository {
         accountId: accountId,
       );
     } catch (e, st) {
-      log.e('TransactionRepository.create() failed', error: e, stackTrace: st);
+      log.e(
+        'TransactionRepository.create() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -100,7 +102,11 @@ class TransactionRepository {
       );
       await _db.updateTransaction(id, fields);
     } catch (e, st) {
-      log.e('TransactionRepository.update() failed', error: e, stackTrace: st);
+      log.e(
+        'TransactionRepository.update() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -110,7 +116,11 @@ class TransactionRepository {
       log.w('TransactionRepository.delete(id=$id)');
       return await _db.deleteTransaction(id);
     } catch (e, st) {
-      log.e('TransactionRepository.delete() failed', error: e, stackTrace: st);
+      log.e(
+        'TransactionRepository.delete() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -122,7 +132,7 @@ class TransactionRepository {
     } catch (e, st) {
       log.e(
         'TransactionRepository.deleteAll() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       rethrow;
@@ -142,7 +152,11 @@ class TransactionRepository {
         transferGroupId: txn.transferGroupId,
       );
     } catch (e, st) {
-      log.e('TransactionRepository.restore() failed', error: e, stackTrace: st);
+      log.e(
+        'TransactionRepository.restore() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -188,7 +202,7 @@ class TransactionRepository {
     } catch (e, st) {
       log.e(
         'TransactionRepository.fetchByTransferGroupId() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       rethrow;
@@ -202,7 +216,7 @@ class TransactionRepository {
     } catch (e, st) {
       log.e(
         'TransactionRepository.deleteByTransferGroupId() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       rethrow;

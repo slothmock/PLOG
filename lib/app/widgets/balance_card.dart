@@ -48,7 +48,10 @@ class BalanceCard extends StatelessWidget {
                     ],
                     Text(
                       label,
-                      style: const TextStyle(fontSize: 12, color: Colors.black38),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black38,
+                      ),
                     ),
                     if (helpTitle != null && helpLines != null)
                       InfoHelpButton(

@@ -43,7 +43,11 @@ class SettingsState extends ChangeNotifier {
         log.i('SettingsState.load(force=$force)');
         _settings = await _repo.fetchAppSettings();
       } catch (e, st) {
-        log.e('SettingsState.load() failed', error: e, stackTrace: st);
+        log.e(
+          'SettingsState.load() failed',
+          error: safeLogError(e),
+          stackTrace: st,
+        );
         _setError('Failed to load settings.');
       } finally {
         _setLoading(false);

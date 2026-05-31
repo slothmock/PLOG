@@ -124,6 +124,11 @@ class _ActionsMenuState extends ConsumerState<_ActionsMenu> {
                 );
                 state.clearError();
               } else {
+                await Future.wait([
+                  ref.read(transactionStateProvider).loadAll(force: true),
+                  ref.read(balanceStateProvider).load(force: true),
+                ]);
+                if (!rootCtx.mounted) return;
                 await showMsg('Marked paid');
               }
               return;

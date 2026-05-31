@@ -527,26 +527,13 @@ class DBService {
           .map((row) => row['id'])
           .whereType<int>()
           .toList();
+      final searchFilter = _buildTransactionSearchFilter(
+        trimmedQuery,
+        matchingAccountIds,
+      );
 
-      final searchParts = <String>[
-        'LOWER(category) LIKE ?',
-        "LOWER(COALESCE(merchant, '')) LIKE ?",
-        "LOWER(COALESCE(notes, '')) LIKE ?",
-        'CAST(amount_minor AS TEXT) LIKE ?',
-        "printf('%.2f', amount_minor / 100.0) LIKE ?",
-        "printf('%.2f', ABS(amount_minor) / 100.0) LIKE ?",
-      ];
-      final searchArgs = <Object?>[like, like, like, like, like, like];
-
-      if (matchingAccountIds.isNotEmpty) {
-        searchParts.add(
-          'account_id IN (${List.filled(matchingAccountIds.length, '?').join(', ')})',
-        );
-        searchArgs.addAll(matchingAccountIds);
-      }
-
-      whereParts.add('(${searchParts.join(' OR ')})');
-      whereArgs.addAll(searchArgs);
+      whereParts.add(searchFilter.where);
+      whereArgs.addAll(searchFilter.args);
     }
 
     final result = await database.query(
@@ -559,6 +546,160 @@ class DBService {
     );
 
     return result.map((row) => SlothTransaction.fromMap(row)).toList();
+  }
+
+  _TransactionSearchFilter _buildTransactionSearchFilter(
+    String query,
+    List<int> matchingAccountIds,
+  ) {
+    final like = '%$query%';
+    final searchParts = <String>[
+      'LOWER(category) LIKE ?',
+      "LOWER(COALESCE(merchant, '')) LIKE ?",
+      "LOWER(COALESCE(notes, '')) LIKE ?",
+      'CAST(amount_minor AS TEXT) LIKE ?',
+      "printf('%.2f', amount_minor / 100.0) LIKE ?",
+      "printf('%.2f', ABS(amount_minor) / 100.0) LIKE ?",
+    ];
+    final searchArgs = <Object?>[like, like, like, like, like, like];
+
+    _addDateSearchParts(query, searchParts, searchArgs);
+
+    if (matchingAccountIds.isNotEmpty) {
+      searchParts.add(
+        'account_id IN (${List.filled(matchingAccountIds.length, '?').join(', ')})',
+      );
+      searchArgs.addAll(matchingAccountIds);
+    }
+
+    return _TransactionSearchFilter(
+      where: '(${searchParts.join(' OR ')})',
+      args: searchArgs,
+    );
+  }
+
+  void _addDateSearchParts(
+    String query,
+    List<String> searchParts,
+    List<Object?> searchArgs,
+  ) {
+    final yearMatch = RegExp(r'^(\d{4})$').firstMatch(query);
+    if (yearMatch != null) {
+      final year = int.parse(yearMatch.group(1)!);
+      _addDateRange(
+        searchParts,
+        searchArgs,
+        DateTime(year),
+        DateTime(year + 1),
+      );
+      return;
+    }
+
+    final yearMonthMatch = RegExp(r'^(\d{4})-(\d{1,2})$').firstMatch(query);
+    if (yearMonthMatch != null) {
+      final year = int.parse(yearMonthMatch.group(1)!);
+      final month = int.parse(yearMonthMatch.group(2)!);
+      if (month >= 1 && month <= 12) {
+        _addDateRange(
+          searchParts,
+          searchArgs,
+          DateTime(year, month),
+          DateTime(year, month + 1),
+        );
+      }
+      return;
+    }
+
+    final isoDayMatch = RegExp(
+      r'^(\d{4})-(\d{1,2})-(\d{1,2})$',
+    ).firstMatch(query);
+    if (isoDayMatch != null) {
+      final year = int.parse(isoDayMatch.group(1)!);
+      final month = int.parse(isoDayMatch.group(2)!);
+      final day = int.parse(isoDayMatch.group(3)!);
+      _addValidDayRange(searchParts, searchArgs, year, month, day);
+      return;
+    }
+
+    final slashDayMatch = RegExp(
+      r'^(\d{1,2})/(\d{1,2})/(\d{4})$',
+    ).firstMatch(query);
+    if (slashDayMatch != null) {
+      final first = int.parse(slashDayMatch.group(1)!);
+      final second = int.parse(slashDayMatch.group(2)!);
+      final year = int.parse(slashDayMatch.group(3)!);
+      _addValidDayRange(searchParts, searchArgs, year, second, first);
+      if (first != second) {
+        _addValidDayRange(searchParts, searchArgs, year, first, second);
+      }
+      return;
+    }
+
+    final month = _monthNumberForQuery(query);
+    if (month != null) {
+      searchParts.add("strftime('%m', date / 1000, 'unixepoch') = ?");
+      searchArgs.add(month.toString().padLeft(2, '0'));
+    }
+  }
+
+  void _addDateRange(
+    List<String> searchParts,
+    List<Object?> searchArgs,
+    DateTime start,
+    DateTime end,
+  ) {
+    searchParts.add('(date >= ? AND date < ?)');
+    searchArgs.addAll([
+      start.millisecondsSinceEpoch,
+      end.millisecondsSinceEpoch,
+    ]);
+  }
+
+  void _addValidDayRange(
+    List<String> searchParts,
+    List<Object?> searchArgs,
+    int year,
+    int month,
+    int day,
+  ) {
+    final start = DateTime(year, month, day);
+    if (start.year != year || start.month != month || start.day != day) return;
+    _addDateRange(
+      searchParts,
+      searchArgs,
+      start,
+      start.add(const Duration(days: 1)),
+    );
+  }
+
+  int? _monthNumberForQuery(String query) {
+    const monthLookup = {
+      'jan': 1,
+      'january': 1,
+      'feb': 2,
+      'february': 2,
+      'mar': 3,
+      'march': 3,
+      'apr': 4,
+      'april': 4,
+      'may': 5,
+      'jun': 6,
+      'june': 6,
+      'jul': 7,
+      'july': 7,
+      'aug': 8,
+      'august': 8,
+      'sep': 9,
+      'sept': 9,
+      'september': 9,
+      'oct': 10,
+      'october': 10,
+      'nov': 11,
+      'november': 11,
+      'dec': 12,
+      'december': 12,
+    };
+    return monthLookup[query];
   }
 
   Future<List<SlothTransaction>> getExpenses({int? limit}) async {
@@ -904,4 +1045,11 @@ class DBService {
       }
     });
   }
+}
+
+class _TransactionSearchFilter {
+  const _TransactionSearchFilter({required this.where, required this.args});
+
+  final String where;
+  final List<Object?> args;
 }

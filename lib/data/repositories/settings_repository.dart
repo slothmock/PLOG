@@ -13,7 +13,7 @@ class SettingsRepository {
     } catch (e, st) {
       log.e(
         'SettingsRepository.fetchAppSettings() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       rethrow;
@@ -25,12 +25,12 @@ class SettingsRepository {
     required String symbol,
   }) async {
     try {
-      log.i('SettingsRepository.setCurrency(code=$code, symbol=$symbol)');
+      log.i('SettingsRepository.setCurrency()');
       await _db.setCurrency(code: code, symbol: symbol);
     } catch (e, st) {
       log.e(
         'SettingsRepository.setCurrency() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       rethrow;

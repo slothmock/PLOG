@@ -74,7 +74,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final netWorth = assetTotal - liabilityExposure;
 
     log.d(
-      'HomeScreen build: assets=$assetTotal, liabilities=$liabilityExposure, netWorth=$netWorth, recentTxns=${recentTxns.length}, settings=${settingsState.settings}',
+      'HomeScreen build: recentTxns=${recentTxns.length}, settingsLoaded=${settingsState.settings.currencyCode.isNotEmpty}',
     );
 
     final cs = Theme.of(context).colorScheme;

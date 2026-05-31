@@ -52,7 +52,7 @@ class BalanceRepository {
     } catch (e, st) {
       log.e(
         'BalanceRepository.fetchAccountBalanceRows() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       rethrow;

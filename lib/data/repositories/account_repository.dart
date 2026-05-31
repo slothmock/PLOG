@@ -15,7 +15,11 @@ class AccountRepository {
       final rows = await _db.getAccounts();
       return rows.map(SlothAccount.fromMap).toList();
     } catch (e, st) {
-      log.e('AccountRepository.fetchAll() failed', error: e, stackTrace: st);
+      log.e(
+        'AccountRepository.fetchAll() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -29,9 +33,7 @@ class AccountRepository {
     int? createdAtMillis,
   }) async {
     try {
-      log.i(
-        'AccountRepository.create(name="$name", category=${category.dbValue}, type=${type.dbValue}, currency="$currency", openingBalance=$openingBalance)',
-      );
+      log.i('AccountRepository.create()');
 
       await _db.insertAccount(
         name: name,
@@ -43,7 +45,11 @@ class AccountRepository {
             createdAtMillis ?? DateTime.now().millisecondsSinceEpoch,
       );
     } catch (e, st) {
-      log.e('AccountRepository.create() failed', error: e, stackTrace: st);
+      log.e(
+        'AccountRepository.create() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -57,9 +63,7 @@ class AccountRepository {
     required double openingBalance,
   }) async {
     try {
-      log.i(
-        'AccountRepository.update(id=$id, name="$name", category=${category.dbValue}, type=${type.dbValue}, currency="$currency", openingBalance=$openingBalance)',
-      );
+      log.i('AccountRepository.update()');
 
       await _db.updateAccount(
         id: id,
@@ -70,7 +74,11 @@ class AccountRepository {
         openingBalance: openingBalance,
       );
     } catch (e, st) {
-      log.e('AccountRepository.update() failed', error: e, stackTrace: st);
+      log.e(
+        'AccountRepository.update() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -80,7 +88,11 @@ class AccountRepository {
       log.w('AccountRepository.delete(id=$id)');
       await _db.deleteAccount(id);
     } catch (e, st) {
-      log.e('AccountRepository.delete() failed', error: e, stackTrace: st);
+      log.e(
+        'AccountRepository.delete() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -93,7 +105,7 @@ class AccountRepository {
     } catch (e, st) {
       log.e(
         'AccountRepository.hasTransactions() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       rethrow;
@@ -110,7 +122,7 @@ class AccountRepository {
     } catch (e, st) {
       log.e(
         'AccountRepository.hasActiveSubscriptions() failed',
-        error: e,
+        error: safeLogError(e),
         stackTrace: st,
       );
       rethrow;

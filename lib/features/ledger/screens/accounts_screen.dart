@@ -169,9 +169,7 @@ class _BodyState extends ConsumerState<_Body> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => AccountDetailScreen(account: acc),
-          ),
+          MaterialPageRoute(builder: (_) => AccountDetailScreen(account: acc)),
         );
       },
       onLongPress: () {

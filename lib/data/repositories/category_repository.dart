@@ -10,7 +10,11 @@ class CategoryRepository {
       log.d('CategoryRepository.fetchAll()');
       return await _db.getCategories();
     } catch (e, st) {
-      log.e('CategoryRepository.fetchAll() failed', error: e, stackTrace: st);
+      log.e(
+        'CategoryRepository.fetchAll() failed',
+        error: safeLogError(e),
+        stackTrace: st,
+      );
       rethrow;
     }
   }
