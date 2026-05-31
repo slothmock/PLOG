@@ -10,7 +10,6 @@ export 'state/balance_state.dart';
 
 // Logic helpers used by app-level UI
 export 'logic/transfer_collapse.dart';
-export 'logic/month_aggregates.dart';
 
 // Widgets/modals
 export 'widgets/account_txn_row.dart';

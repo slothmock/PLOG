@@ -11,17 +11,28 @@ class SettingsRepository {
       log.d('SettingsRepository.fetchAppSettings()');
       return await _db.getAppSettings();
     } catch (e, st) {
-      log.e('SettingsRepository.fetchAppSettings() failed', error: e, stackTrace: st);
+      log.e(
+        'SettingsRepository.fetchAppSettings() failed',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
 
-  Future<void> setCurrency({required String code, required String symbol}) async {
+  Future<void> setCurrency({
+    required String code,
+    required String symbol,
+  }) async {
     try {
       log.i('SettingsRepository.setCurrency(code=$code, symbol=$symbol)');
       await _db.setCurrency(code: code, symbol: symbol);
     } catch (e, st) {
-      log.e('SettingsRepository.setCurrency() failed', error: e, stackTrace: st);
+      log.e(
+        'SettingsRepository.setCurrency() failed',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }

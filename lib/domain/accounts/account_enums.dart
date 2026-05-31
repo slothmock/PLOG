@@ -1,30 +1,35 @@
-enum AccountCategory { fiat }
+enum AccountCategory { asset, liability }
 
 extension AccountCategoryX on AccountCategory {
   String get dbValue => name;
 
   String get label {
     switch (this) {
-      case AccountCategory.fiat:
-        return 'Fiat';
+      case AccountCategory.asset:
+        return 'Assets';
+      case AccountCategory.liability:
+        return 'Liabilities';
     }
   }
 
   static AccountCategory fromDb(String? value) {
-    if (value == null) return AccountCategory.fiat;
+    if (value == null || value == 'fiat') return AccountCategory.asset;
     return AccountCategory.values.firstWhere(
       (c) => c.name == value,
-      orElse: () => AccountCategory.fiat,
+      orElse: () => AccountCategory.asset,
     );
   }
 }
 
 enum AccountType {
-  // Fiat
+  // Assets
   cash,
   bank,
 
-
+  // Liabilities
+  creditCard,
+  loan,
+  mortgage,
 }
 
 extension AccountTypeX on AccountType {
@@ -36,6 +41,12 @@ extension AccountTypeX on AccountType {
         return 'Cash';
       case AccountType.bank:
         return 'Bank Account';
+      case AccountType.creditCard:
+        return 'Credit Card';
+      case AccountType.loan:
+        return 'Loan';
+      case AccountType.mortgage:
+        return 'Mortgage';
     }
   }
 
@@ -50,7 +61,13 @@ extension AccountTypeX on AccountType {
 
 List<AccountType> accountTypesFor(AccountCategory category) {
   switch (category) {
-    case AccountCategory.fiat:
+    case AccountCategory.asset:
       return const [AccountType.cash, AccountType.bank];
+    case AccountCategory.liability:
+      return const [
+        AccountType.creditCard,
+        AccountType.loan,
+        AccountType.mortgage,
+      ];
   }
 }

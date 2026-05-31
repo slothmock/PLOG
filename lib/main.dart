@@ -34,9 +34,7 @@ class _SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
 
@@ -46,10 +44,6 @@ class _StartupErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Text('Startup failed: $error'),
-      ),
-    );
+    return Scaffold(body: Center(child: Text('Startup failed: $error')));
   }
 }

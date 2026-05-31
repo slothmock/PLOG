@@ -8,17 +8,18 @@ import 'package:sloth_ledger/app/widgets/info_toast.dart';
 import 'package:sloth_ledger/domain/subscriptions/subscription.dart';
 import 'package:sloth_ledger/features/subscriptions/widgets/add_subscription_modal.dart';
 
-
 class SubscriptionDetailModal extends ConsumerStatefulWidget {
   const SubscriptionDetailModal({super.key, required this.sub});
 
   final SlothSubscription sub;
 
   @override
-  ConsumerState<SubscriptionDetailModal> createState() => _SubscriptionDetailModalState();
+  ConsumerState<SubscriptionDetailModal> createState() =>
+      _SubscriptionDetailModalState();
 }
 
-class _SubscriptionDetailModalState extends ConsumerState<SubscriptionDetailModal> {
+class _SubscriptionDetailModalState
+    extends ConsumerState<SubscriptionDetailModal> {
   @override
   Widget build(BuildContext context) {
     final subState = ref.watch(subscriptionStateProvider);
@@ -55,7 +56,9 @@ class _SubscriptionDetailModalState extends ConsumerState<SubscriptionDetailModa
               Row(
                 children: [
                   Icon(
-                    widget.sub.isActive ? Icons.autorenew : Icons.pause_circle_outline,
+                    widget.sub.isActive
+                        ? Icons.autorenew
+                        : Icons.pause_circle_outline,
                     color: widget.sub.isActive ? Colors.blueGrey : Colors.grey,
                   ),
                   const SizedBox(width: 10),
@@ -83,42 +86,57 @@ class _SubscriptionDetailModalState extends ConsumerState<SubscriptionDetailModa
               const SizedBox(height: 16),
 
               // Mark paid (primary)
-              if (activeSub) 
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.check_circle, color: Colors.teal,),
-                  label: const Text('Mark as paid', style: TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),),
-                  onPressed: busy
-                      ? null
-                      : () async {
-
-                          final ok = await ref
-                              .read(subscriptionStateProvider)
-                              .markPaid(sub: widget.sub);
-
-                          if (!context.mounted) return;
-
-                          if (!ok) {
-                            final msg = ref
+              if (activeSub)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.check_circle, color: Colors.teal),
+                    label: const Text(
+                      'Mark as paid',
+                      style: TextStyle(
+                        color: Colors.teal,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: busy
+                        ? null
+                        : () async {
+                            final ok = await ref
                                 .read(subscriptionStateProvider)
-                                .errorMessage ??
-                                'Mark as paid failed';
+                                .markPaid(sub: widget.sub);
+
                             if (!context.mounted) return;
-                            CustomInfoToast.show(context, message: msg);
-                            ref.read(subscriptionStateProvider).clearError();
-                          } else {
-                            if (!context.mounted) return;
-                            CustomInfoToast.show(context, message: 'Marked as paid', duration: const Duration(seconds: 2));
-                            await ref.read(accountStateProvider).load(force: true);
-                            await ref.read(subscriptionStateProvider).load();
-                            if (!context.mounted) return;
-                            Navigator.pop(context);
-                          }
-                        },
+
+                            if (!ok) {
+                              final msg =
+                                  ref
+                                      .read(subscriptionStateProvider)
+                                      .errorMessage ??
+                                  'Mark as paid failed';
+                              if (!context.mounted) return;
+                              CustomInfoToast.show(context, message: msg);
+                              ref.read(subscriptionStateProvider).clearError();
+                            } else {
+                              if (!context.mounted) return;
+                              CustomInfoToast.show(
+                                context,
+                                message: 'Marked as paid',
+                                duration: const Duration(seconds: 2),
+                              );
+                              await ref
+                                  .read(transactionStateProvider)
+                                  .loadAll(force: true);
+                              await ref
+                                  .read(accountStateProvider)
+                                  .load(force: true);
+                              await ref.read(subscriptionStateProvider).load();
+                              if (!context.mounted) return;
+                              Navigator.pop(context);
+                            }
+                          },
+                  ),
                 ),
-              ),
-      
+
               const SizedBox(height: 12),
 
               // Secondary actions
@@ -139,8 +157,9 @@ class _SubscriptionDetailModalState extends ConsumerState<SubscriptionDetailModa
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                builder: (_) =>
-                                    AddSubscriptionModal(subscription: widget.sub),
+                                builder: (_) => AddSubscriptionModal(
+                                  subscription: widget.sub,
+                                ),
                               );
                             },
                     ),
@@ -166,14 +185,20 @@ class _SubscriptionDetailModalState extends ConsumerState<SubscriptionDetailModa
                               if (!context.mounted) return;
 
                               if (!ok) {
-                                final msg = ref
+                                final msg =
+                                    ref
                                         .read(subscriptionStateProvider)
                                         .errorMessage ??
                                     'Delete failed';
                                 ErrorToast.show(context, message: msg);
-                                ref.read(subscriptionStateProvider).clearError();
+                                ref
+                                    .read(subscriptionStateProvider)
+                                    .clearError();
                               } else {
-                                CustomInfoToast.show(context, message: 'Subscription deleted');
+                                CustomInfoToast.show(
+                                  context,
+                                  message: 'Subscription deleted',
+                                );
                               }
                             },
                     ),

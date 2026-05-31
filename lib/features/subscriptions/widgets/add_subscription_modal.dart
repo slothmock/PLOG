@@ -13,7 +13,8 @@ class AddSubscriptionModal extends ConsumerStatefulWidget {
   final SlothSubscription? subscription;
 
   @override
-  ConsumerState<AddSubscriptionModal> createState() => _AddSubscriptionModalState();
+  ConsumerState<AddSubscriptionModal> createState() =>
+      _AddSubscriptionModalState();
 }
 
 class _AddSubscriptionModalState extends ConsumerState<AddSubscriptionModal> {
@@ -113,7 +114,10 @@ class _AddSubscriptionModalState extends ConsumerState<AddSubscriptionModal> {
       ErrorToast.show(context, message: msg);
       state.clearError();
     } else {
-      CustomInfoToast.show(context, message: isEdit ? 'Subscription updated' : 'Subscription added');
+      CustomInfoToast.show(
+        context,
+        message: isEdit ? 'Subscription updated' : 'Subscription added',
+      );
     }
   }
 
@@ -154,10 +158,13 @@ class _AddSubscriptionModalState extends ConsumerState<AddSubscriptionModal> {
                   ),
                   Text(
                     title,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 16),
-      
+
                   TextField(
                     controller: _name,
                     decoration: const InputDecoration(
@@ -168,33 +175,42 @@ class _AddSubscriptionModalState extends ConsumerState<AddSubscriptionModal> {
                     textInputAction: TextInputAction.next,
                   ),
                   const SizedBox(height: 12),
-      
+
                   TextField(
                     controller: _amount,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: const InputDecoration(
                       labelText: 'Amount',
                       border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
-      
+
                   DropdownButtonFormField<String>(
                     initialValue: _interval,
                     items: const [
                       DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
-                      DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
-                      DropdownMenuItem(value: 'quarterly', child: Text('Quarterly')),
+                      DropdownMenuItem(
+                        value: 'monthly',
+                        child: Text('Monthly'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'quarterly',
+                        child: Text('Quarterly'),
+                      ),
                       DropdownMenuItem(value: 'yearly', child: Text('Yearly')),
                     ],
-                    onChanged: (v) => setState(() => _interval = v ?? 'monthly'),
+                    onChanged: (v) =>
+                        setState(() => _interval = v ?? 'monthly'),
                     decoration: const InputDecoration(
                       labelText: 'Interval',
                       border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
-      
+
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.event),
@@ -203,16 +219,18 @@ class _AddSubscriptionModalState extends ConsumerState<AddSubscriptionModal> {
                     trailing: const Icon(Icons.chevron_right),
                     onTap: _pickNextDue,
                   ),
-      
+
                   const SizedBox(height: 8),
-      
+
                   DropdownButtonFormField<int>(
                     initialValue: _accountId,
                     items: accounts
-                        .map((a) => DropdownMenuItem(
-                              value: a.id,
-                              child: Text(a.name),
-                            ))
+                        .map(
+                          (a) => DropdownMenuItem(
+                            value: a.id,
+                            child: Text(a.name),
+                          ),
+                        )
                         .toList(),
                     onChanged: (v) => setState(() => _accountId = v),
                     decoration: const InputDecoration(
@@ -220,18 +238,18 @@ class _AddSubscriptionModalState extends ConsumerState<AddSubscriptionModal> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-      
+
                   const SizedBox(height: 12),
-      
+
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Active'),
                     value: _isActive,
                     onChanged: (v) => setState(() => _isActive = v),
                   ),
-      
+
                   const SizedBox(height: 12),
-      
+
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(

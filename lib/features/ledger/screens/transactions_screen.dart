@@ -9,7 +9,6 @@ import 'package:sloth_ledger/features/ledger/ledger.dart';
 
 import 'package:sloth_ledger/features/ledger/utils/relative_labels.dart';
 
-
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
 
@@ -58,6 +57,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     super.dispose();
   }
 
+  void _loadCurrentLedgerQuery() {
+    ref
+        .read(transactionStateProvider)
+        .loadFiltered(
+          accountId: _accountId,
+          category: _category,
+          searchQuery: _queryApplied,
+        );
+  }
+
   void _onSearchChanged(String v) {
     _queryRaw = v;
 
@@ -65,6 +74,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     _searchDebounce = Timer(const Duration(milliseconds: _debounceMs), () {
       if (!mounted) return;
       setState(() => _queryApplied = _queryRaw);
+      _loadCurrentLedgerQuery();
     });
   }
 
@@ -75,6 +85,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       _queryApplied = '';
       _searchController.clear();
     });
+    _loadCurrentLedgerQuery();
   }
 
   void _openFilters(BuildContext context, WidgetRef ref) {
@@ -163,6 +174,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 _accountId = null;
                                 _category = null;
                               });
+                              _loadCurrentLedgerQuery();
                               Navigator.pop(context);
                             },
                             child: const Text('Clear'),
@@ -176,6 +188,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 _accountId = accountId;
                                 _category = category;
                               });
+                              _loadCurrentLedgerQuery();
                               Navigator.pop(context);
                             },
                             child: const Text('Apply'),
@@ -296,10 +309,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
     final accountState = ref.watch(accountStateProvider);
 
-    final base = txnState.filteredAll(
-      accountId: _accountId,
-      category: _category,
-    );
+    final base = txnState.all;
 
     final hasSearch = _normalizeQuery(_queryApplied).isNotEmpty;
     final hasFilters = _accountId != null || _category != null;
@@ -473,7 +483,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     color: Colors.grey.shade400,
                                   ),
                                   const SizedBox(height: 16),
-                              
+
                                   if (isTrulyEmpty &&
                                       !hasFilters &&
                                       !hasSearch) ...[
@@ -637,10 +647,11 @@ class _LedgerDayGroup extends StatelessWidget {
             ],
           ),
         ),
-        ...txns.map((t) => TransactionRow(txn: t, currencySymbol: currencySymbol)),
+        ...txns.map(
+          (t) => TransactionRow(txn: t, currencySymbol: currencySymbol),
+        ),
         const Divider(height: 16),
       ],
     );
   }
 }
-

@@ -9,7 +9,7 @@ double monthToDateNet({
   required AccountState accounts,
   required String currencyCode,
   DateTime? now,
-  Set<AccountCategory> categories = const {AccountCategory.fiat},
+  Set<AccountCategory> categories = const {AccountCategory.asset},
 }) {
   final n = now ?? DateTime.now();
   final from = startOfMonth(n);
