@@ -4,7 +4,6 @@ import 'package:sloth_ledger/domain/accounts/account.dart';
 import 'package:sloth_ledger/data/db/db_service.dart';
 import 'package:sloth_ledger/domain/subscriptions/subscription.dart';
 
-
 class AccountRepository {
   AccountRepository({DBService? db}) : _db = db ?? DBService();
 
@@ -36,8 +35,8 @@ class AccountRepository {
 
       await _db.insertAccount(
         name: name,
-        category: category.name,
-        type: type.name,
+        category: category.dbValue,
+        type: type.dbValue,
         currency: currency,
         openingBalance: openingBalance,
         createdAtMillis:
@@ -90,8 +89,7 @@ class AccountRepository {
   Future<bool> hasTransactions(int accountId) async {
     try {
       log.d('AccountRepository.hasTransactions(accountId=$accountId)');
-      final txns = await _db.getTransactions();
-      return txns.any((t) => t.accountId == accountId);
+      return await _db.hasTransactionsForAccount(accountId);
     } catch (e, st) {
       log.e(
         'AccountRepository.hasTransactions() failed',
@@ -109,7 +107,7 @@ class AccountRepository {
       final subs = await _db.getSubscriptions(activeOnly: true);
       final accountSubs = subs.map(SlothSubscription.fromMap).toList();
       return accountSubs.any((s) => s.accountId == accountId && s.isActive);
-    } catch (e, st) { 
+    } catch (e, st) {
       log.e(
         'AccountRepository.hasActiveSubscriptions() failed',
         error: e,

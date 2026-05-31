@@ -41,7 +41,8 @@ class AppStrings {
   static const recentTransactions = 'Recent Transactions';
   static const addTransaction = 'Add Transaction';
   static const editTransaction = 'Edit Transaction';
-  static const noRecentTransactionsTitle = "Add your first transaction\n by pressing the '+' button below!";
+  static const noRecentTransactionsTitle =
+      "Add your first transaction\n by pressing the '+' button below!";
   static const noTransactionsYetTitle = 'No transactions yet...';
   static const noTransactionsYetBody =
       'Your ledger will show all income and expenses here.\n'
@@ -65,15 +66,15 @@ class AppStrings {
   static const noSubscriptions = 'No subscriptions yet...';
   static const subsNotFound = 'No subscriptions found. Try adding one!';
   static const subsRefreshed = 'Subscriptions refreshed!';
-  static const addSubsBody = 'Track recurring bills like Netflix, Spotify, iCloud.\n'
-                             'Add your first subscription to see upcoming payments.';
-  
-  static const subActive = 'Active';                      
+  static const addSubsBody =
+      'Track recurring bills like Netflix, Spotify, iCloud.\n'
+      'Add your first subscription to see upcoming payments.';
+
+  static const subActive = 'Active';
   static const subDueSoon = 'Due Soon';
   static const subDueLater = 'Later';
   static const subPaused = 'Paused';
   static const subOverdue = 'Overdue';
-
 
   // Settings
   static const categoriesTitle = 'Categories';

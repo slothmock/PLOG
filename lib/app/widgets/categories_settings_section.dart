@@ -23,23 +23,22 @@ class _CategoriesSettingsSectionState
   void initState() {
     super.initState();
 
-    _categoriesSub = ref.listenManual<CategoryState>(
-      categoryStateProvider,
-      (previous, next) {
-        final cats = next.categories;
+    _categoriesSub = ref.listenManual<CategoryState>(categoryStateProvider, (
+      previous,
+      next,
+    ) {
+      final cats = next.categories;
 
-        if (_items == null || _items!.length != cats.length) {
-          if (mounted) {
-            setState(() {
-              _items = List<String>.of(cats);
-            });
-          } else {
+      if (_items == null || _items!.length != cats.length) {
+        if (mounted) {
+          setState(() {
             _items = List<String>.of(cats);
-          }
+          });
+        } else {
+          _items = List<String>.of(cats);
         }
-      },
-      fireImmediately: true,
-    );
+      }
+    }, fireImmediately: true);
   }
 
   @override
@@ -128,7 +127,9 @@ class _CategoriesSettingsSectionState
                             CustomInfoToast.show(context, message: msg);
                           }
 
-                          final err = ref.read(categoryStateProvider).errorMessage;
+                          final err = ref
+                              .read(categoryStateProvider)
+                              .errorMessage;
                           if (err != null) {
                             if (!context.mounted) return;
                             ErrorToast.show(context, message: err);
@@ -219,7 +220,9 @@ class _CategoriesSettingsSectionState
                   .add(controller.text);
 
               setState(() {
-                _items = List<String>.of(ref.read(categoryStateProvider).categories);
+                _items = List<String>.of(
+                  ref.read(categoryStateProvider).categories,
+                );
               });
 
               if (d.mounted) Navigator.pop(d);
@@ -269,7 +272,9 @@ class _CategoriesSettingsSectionState
                   .rename(from, controller.text);
 
               setState(() {
-                _items = List<String>.of(ref.read(categoryStateProvider).categories);
+                _items = List<String>.of(
+                  ref.read(categoryStateProvider).categories,
+                );
               });
 
               if (d.mounted) Navigator.pop(d);

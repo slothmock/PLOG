@@ -4,16 +4,15 @@ import 'package:intl/intl.dart';
 import 'package:sloth_ledger/app/bootstrapbill/startup_provider.dart';
 
 import 'package:sloth_ledger/app/utils/currency_formatter.dart';
+import 'package:sloth_ledger/app/widgets/error_toast.dart';
+import 'package:sloth_ledger/app/widgets/info_toast.dart';
 import 'package:sloth_ledger/domain/subscriptions/subscription.dart';
+import 'package:sloth_ledger/features/subscriptions/logic/interval_helper.dart';
 import 'package:sloth_ledger/features/subscriptions/widgets/subscription_detail_modal.dart';
 import 'package:sloth_ledger/features/subscriptions/widgets/add_subscription_modal.dart';
-import 'package:sloth_ledger/features/subscriptions/logic/monthly_equivalents.dart';
 
 class SubscriptionTile extends ConsumerStatefulWidget {
-  const SubscriptionTile({
-    super.key,
-    required this.sub,
-  });
+  const SubscriptionTile({super.key, required this.sub});
 
   final SlothSubscription sub;
 
@@ -102,103 +101,120 @@ class _ActionsMenuState extends ConsumerState<_ActionsMenu> {
         final state = ref.watch(subscriptionStateProvider);
 
         Future<void> showMsg(String msg, {bool error = false}) async {
-          ScaffoldMessenger.of(rootCtx)
-            ..clearSnackBars()
-            ..showSnackBar(
-              SnackBar(
-                content: Text(msg),
-                backgroundColor: error ? Colors.red : null,
-              ),
-            );
+          error
+              ? ErrorToast.show(rootCtx, message: msg)
+              : CustomInfoToast.show(rootCtx, message: msg);
         }
 
         switch (action) {
-          case _SubAction.markPaid: {
-            if (!widget.sub.isActive) {
-              await showMsg('Subscription is paused', error: true);
+          case _SubAction.markPaid:
+            {
+              if (!widget.sub.isActive) {
+                await showMsg('Subscription is paused', error: true);
+                return;
+              }
+              final ok = await ref
+                  .read(subscriptionStateProvider)
+                  .markPaid(sub: widget.sub); // implement in state
+              if (!rootCtx.mounted) return;
+              if (!ok) {
+                await showMsg(
+                  state.errorMessage ?? 'Mark paid failed',
+                  error: true,
+                );
+                state.clearError();
+              } else {
+                await showMsg('Marked paid');
+              }
               return;
             }
-            final ok = await state.markPaid(sub: widget.sub); // implement in state
-            if (!rootCtx.mounted) return;
-            if (!ok) {
-              await showMsg(state.errorMessage ?? 'Mark paid failed', error: true);
-              state.clearError();
-            } else {
-              await showMsg('Marked paid');
+
+          case _SubAction.snooze7:
+            {
+              final ok = await ref
+                  .read(subscriptionStateProvider)
+                  .snooze(widget.sub, days: 7); // implement in state
+              if (!rootCtx.mounted) return;
+              if (!ok) {
+                await showMsg(
+                  state.errorMessage ?? 'Snooze failed',
+                  error: true,
+                );
+                state.clearError();
+              } else {
+                await showMsg('Snoozed 7 days');
+              }
+              return;
             }
-            return;
-          }
 
-          case _SubAction.snooze7: {
-            final ok = await state.snooze(widget.sub, days: 7); // implement in state
-            if (!rootCtx.mounted) return;
-            if (!ok) {
-              await showMsg(state.errorMessage ?? 'Snooze failed', error: true);
-              state.clearError();
-            } else {
-              await showMsg('Snoozed 7 days');
+          case _SubAction.skipOnce:
+            {
+              final ok = await ref
+                  .read(subscriptionStateProvider)
+                  .skipOnce(widget.sub); // implement in state
+              if (!rootCtx.mounted) return;
+              if (!ok) {
+                await showMsg(state.errorMessage ?? 'Skip failed', error: true);
+                state.clearError();
+              } else {
+                await showMsg('Skipped once');
+              }
+              return;
             }
-            return;
-          }
 
-          case _SubAction.skipOnce: {
-            final ok = await state.skipOnce(widget.sub); // implement in state
-            if (!rootCtx.mounted) return;
-            if (!ok) {
-              await showMsg(state.errorMessage ?? 'Skip failed', error: true);
-              state.clearError();
-            } else {
-              await showMsg('Skipped once');
+          case _SubAction.edit:
+            {
+              showModalBottomSheet(
+                context: rootCtx,
+                isScrollControlled: true,
+                useSafeArea: true,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                builder: (_) => AddSubscriptionModal(subscription: widget.sub),
+              );
+              return;
             }
-            return;
-          }
 
-          case _SubAction.edit: {
-            showModalBottomSheet(
-              context: rootCtx,
-              isScrollControlled: true,
-              useSafeArea: true,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              builder: (_) => AddSubscriptionModal(subscription: widget.sub),
-            );
-            return;
-          }
+          case _SubAction.delete:
+            {
+              final confirm = await showDialog<bool>(
+                context: rootCtx,
+                builder: (d) => AlertDialog(
+                  title: const Text('Delete subscription?'),
+                  content: const Text('This will remove it from your list.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(d, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      onPressed: () => Navigator.pop(d, true),
+                      child: const Text('Delete'),
+                    ),
+                  ],
+                ),
+              );
 
-          case _SubAction.delete: {
-            final confirm = await showDialog<bool>(
-              context: rootCtx,
-              builder: (d) => AlertDialog(
-                title: const Text('Delete subscription?'),
-                content: const Text('This will remove it from your list.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(d, false),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    style: TextButton.styleFrom(foregroundColor: Colors.red),
-                    onPressed: () => Navigator.pop(d, true),
-                    child: const Text('Delete'),
-                  ),
-                ],
-              ),
-            );
+              if (confirm != true) return;
 
-            if (confirm != true) return;
+              final ok = await ref
+                  .read(subscriptionStateProvider)
+                  .delete(widget.sub.id!);
+              if (!rootCtx.mounted) return;
 
-            final ok = await state.delete(widget.sub.id!);
-            if (!rootCtx.mounted) return;
-
-            if (!ok) {
-              await showMsg(state.errorMessage ?? 'Delete failed', error: true);
-              state.clearError();
-            } else {
-              await showMsg('Subscription deleted');
+              if (!ok) {
+                await showMsg(
+                  state.errorMessage ?? 'Delete failed',
+                  error: true,
+                );
+                state.clearError();
+              } else {
+                await showMsg('Subscription deleted');
+              }
+              return;
             }
-            return;
-          }
         }
       },
       itemBuilder: (_) => [

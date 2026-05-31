@@ -1,5 +1,6 @@
 import 'package:sloth_ledger/domain/accounts/account_enums.dart';
 import 'package:sloth_ledger/domain/app_settings/app_settings.dart';
+import 'package:sloth_ledger/domain/money/money.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:sloth_ledger/domain/transactions/transaction.dart';
@@ -18,7 +19,15 @@ class DBService {
     return _db!;
   }
 
-  static const int schemaVersion = 1;
+  static Future<void> resetForTesting() async {
+    await _db?.close();
+    _db = null;
+  }
+
+  static const int schemaVersion = 3;
+
+  static int toMinorUnits(double value) => MoneyMinor.fromDouble(value);
+  static double fromMinorUnits(int value) => MoneyMinor.toDouble(value);
   int getDbVersion() => schemaVersion;
 
   Future<Database> _initDB() async {
@@ -28,6 +37,9 @@ class DBService {
     return await openDatabase(
       path,
       version: schemaVersion,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -41,7 +53,7 @@ class DBService {
         category TEXT NOT NULL,
         type TEXT NOT NULL,
         currency TEXT NOT NULL,
-        opening_balance REAL NOT NULL DEFAULT 0,
+        opening_balance_minor INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL
       )
     ''');
@@ -49,12 +61,12 @@ class DBService {
     await db.execute('''
       CREATE TABLE transactions(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        amount REAL NOT NULL,
+        amount_minor INTEGER NOT NULL,
         category TEXT NOT NULL,
         notes TEXT,
         merchant TEXT,
         date INTEGER NOT NULL,
-        account_id INTEGER NOT NULL REFERENCES accounts(id),
+        account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
         transfer_group_id TEXT
       )
     ''');
@@ -83,7 +95,7 @@ class DBService {
 
     await db.insert('accounts', {
       'name': 'Cash',
-      'category': 'fiat',
+      'category': AccountCategory.asset.dbValue,
       'type': 'cash',
       'currency': 'GBP',
       'created_at': DateTime.now().millisecondsSinceEpoch,
@@ -109,7 +121,192 @@ class DBService {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    throw Exception('DB upgrades not yet implemented. Old version: $oldVersion, new version: $newVersion');  
+    if (oldVersion < 2) {
+      await _migrateToV2(db);
+    }
+    if (oldVersion < 3) {
+      await _migrateToV3(db);
+    }
+  }
+
+  Future<void> _migrateToV2(Database db) async {
+    await db.transaction((txn) async {
+      await txn.execute('''
+        CREATE TABLE subscriptions_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          amount REAL NOT NULL,
+          currency TEXT NOT NULL,
+          interval TEXT NOT NULL,
+          next_due INTEGER NOT NULL,
+          account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+      ''');
+
+      await txn.execute('''
+        INSERT INTO subscriptions_new (
+          id, name, amount, currency, interval, next_due, account_id,
+          is_active, created_at, updated_at
+        )
+        SELECT s.id, s.name, s.amount, s.currency, s.interval, s.next_due,
+          s.account_id, s.is_active, s.created_at, s.updated_at
+        FROM subscriptions s
+        INNER JOIN accounts a ON a.id = s.account_id;
+      ''');
+
+      await txn.execute('''
+        CREATE TABLE subscription_events_migrate (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          subscription_id INTEGER NOT NULL,
+          kind TEXT NOT NULL,
+          amount REAL,
+          date INTEGER NOT NULL,
+          due_date INTEGER,
+          notes TEXT,
+          txn_id INTEGER
+        );
+      ''');
+
+      await txn.execute('''
+        INSERT INTO subscription_events_migrate (
+          id, subscription_id, kind, amount, date, due_date, notes, txn_id
+        )
+        SELECT e.id, e.subscription_id, e.kind, e.amount, e.date,
+          e.due_date, e.notes, e.txn_id
+        FROM subscription_events e
+        INNER JOIN subscriptions_new s ON s.id = e.subscription_id
+        LEFT JOIN transactions t ON t.id = e.txn_id
+        WHERE e.txn_id IS NULL OR t.id IS NOT NULL;
+      ''');
+
+      await txn.execute('DROP TABLE subscription_events;');
+      await txn.execute('DROP TABLE subscriptions;');
+      await txn.execute(
+        'ALTER TABLE subscriptions_new RENAME TO subscriptions;',
+      );
+
+      await txn.execute('''
+        CREATE TABLE subscription_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          subscription_id INTEGER NOT NULL REFERENCES subscriptions(id) ON DELETE CASCADE,
+          kind TEXT NOT NULL,
+          amount REAL,
+          date INTEGER NOT NULL,
+          due_date INTEGER,
+          notes TEXT,
+          txn_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL
+        );
+      ''');
+
+      await txn.execute('''
+        INSERT INTO subscription_events (
+          id, subscription_id, kind, amount, date, due_date, notes, txn_id
+        )
+        SELECT id, subscription_id, kind, amount, date, due_date, notes, txn_id
+        FROM subscription_events_migrate;
+      ''');
+
+      await txn.execute('DROP TABLE subscription_events_migrate;');
+    });
+
+    await _createSubscriptionsTable(db);
+    await _createSubsEventsTable(db);
+  }
+
+  Future<void> _migrateToV3(Database db) async {
+    await db.transaction((txn) async {
+      await txn.execute(
+        'ALTER TABLE subscription_events RENAME TO subscription_events_old;',
+      );
+      await txn.execute('ALTER TABLE transactions RENAME TO transactions_old;');
+      await txn.execute(
+        'ALTER TABLE subscriptions RENAME TO subscriptions_old;',
+      );
+      await txn.execute('ALTER TABLE accounts RENAME TO accounts_old;');
+
+      await txn.execute('''
+        CREATE TABLE accounts(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT UNIQUE NOT NULL,
+          category TEXT NOT NULL,
+          type TEXT NOT NULL,
+          currency TEXT NOT NULL,
+          opening_balance_minor INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL
+        )
+      ''');
+      await txn.execute('''
+        CREATE TABLE transactions(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          amount_minor INTEGER NOT NULL,
+          category TEXT NOT NULL,
+          notes TEXT,
+          merchant TEXT,
+          date INTEGER NOT NULL,
+          account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
+          transfer_group_id TEXT
+        )
+      ''');
+      await txn.execute('''
+        CREATE TABLE subscriptions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          amount_minor INTEGER NOT NULL,
+          currency TEXT NOT NULL,
+          interval TEXT NOT NULL,
+          next_due INTEGER NOT NULL,
+          account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )
+      ''');
+      await txn.execute('''
+        CREATE TABLE subscription_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          subscription_id INTEGER NOT NULL REFERENCES subscriptions(id) ON DELETE CASCADE,
+          kind TEXT NOT NULL,
+          amount_minor INTEGER,
+          date INTEGER NOT NULL,
+          due_date INTEGER,
+          notes TEXT,
+          txn_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL
+        )
+      ''');
+
+      await txn.execute('''
+        INSERT INTO accounts (id, name, category, type, currency, opening_balance_minor, created_at)
+        SELECT id, name, category, type, currency, ROUND(opening_balance * 100), created_at
+        FROM accounts_old;
+      ''');
+      await txn.execute('''
+        INSERT INTO transactions (id, amount_minor, category, notes, merchant, date, account_id, transfer_group_id)
+        SELECT id, ROUND(amount * 100), category, notes, merchant, date, account_id, transfer_group_id
+        FROM transactions_old;
+      ''');
+      await txn.execute('''
+        INSERT INTO subscriptions (id, name, amount_minor, currency, interval, next_due, account_id, is_active, created_at, updated_at)
+        SELECT id, name, ROUND(amount * 100), currency, interval, next_due, account_id, is_active, created_at, updated_at
+        FROM subscriptions_old;
+      ''');
+      await txn.execute('''
+        INSERT INTO subscription_events (id, subscription_id, kind, amount_minor, date, due_date, notes, txn_id)
+        SELECT id, subscription_id, kind, CASE WHEN amount IS NULL THEN NULL ELSE ROUND(amount * 100) END,
+          date, due_date, notes, txn_id
+        FROM subscription_events_old;
+      ''');
+
+      await txn.execute('DROP TABLE subscription_events_old;');
+      await txn.execute('DROP TABLE transactions_old;');
+      await txn.execute('DROP TABLE subscriptions_old;');
+      await txn.execute('DROP TABLE accounts_old;');
+    });
+
+    await _createSubscriptionsTable(db);
+    await _createSubsEventsTable(db);
   }
 
   Future<void> _createSubscriptionsTable(Database db) async {
@@ -117,11 +314,11 @@ class DBService {
       CREATE TABLE IF NOT EXISTS subscriptions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        amount REAL NOT NULL,
+        amount_minor INTEGER NOT NULL,
         currency TEXT NOT NULL,
         interval TEXT NOT NULL,
         next_due INTEGER NOT NULL,
-        account_id INTEGER NOT NULL,
+        account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
         is_active INTEGER NOT NULL DEFAULT 1,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
@@ -143,13 +340,13 @@ class DBService {
     await db.execute('''
     CREATE TABLE IF NOT EXISTS subscription_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      subscription_id INTEGER NOT NULL,
+      subscription_id INTEGER NOT NULL REFERENCES subscriptions(id) ON DELETE CASCADE,
       kind TEXT NOT NULL,
-      amount REAL,
+      amount_minor INTEGER,
       date INTEGER NOT NULL,
       due_date INTEGER,
       notes TEXT,
-      txn_id INTEGER
+      txn_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL
     );
   ''');
 
@@ -167,6 +364,21 @@ class DBService {
       CREATE UNIQUE INDEX IF NOT EXISTS ux_subscription_paid_cycle
       ON subscription_events(subscription_id, kind, due_date);
     ''');
+  }
+
+  Map<String, Object?> _normaliseMoneyFields(Map<String, Object?> fields) {
+    final updateFields = Map<String, Object?>.of(fields);
+    final amount = updateFields.remove('amount');
+    if (amount != null) {
+      updateFields['amount_minor'] = toMinorUnits((amount as num).toDouble());
+    }
+    final openingBalance = updateFields.remove('opening_balance');
+    if (openingBalance != null) {
+      updateFields['opening_balance_minor'] = toMinorUnits(
+        (openingBalance as num).toDouble(),
+      );
+    }
+    return updateFields;
   }
 
   Future<void> runInTransaction(
@@ -194,9 +406,9 @@ class DBService {
       'category': category,
       'type': type,
       'currency': currency,
-      'opening_balance': openingBalance,
+      'opening_balance_minor': toMinorUnits(openingBalance),
       'created_at': createdAtMillis,
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    });
   }
 
   Future<void> updateAccount({
@@ -215,7 +427,7 @@ class DBService {
         'category': category,
         'type': type,
         'currency': currency,
-        'opening_balance': openingBalance,
+        'opening_balance_minor': toMinorUnits(openingBalance),
       },
       where: 'id = ?',
       whereArgs: [id],
@@ -232,7 +444,7 @@ class DBService {
         'category',
         'type',
         'currency',
-        'opening_balance',
+        'opening_balance_minor',
         'created_at',
       ],
       orderBy: 'name',
@@ -259,7 +471,7 @@ class DBService {
   }) async {
     final database = await db;
     return await database.insert('transactions', {
-      'amount': amount,
+      'amount_minor': toMinorUnits(amount),
       'category': category,
       'notes': notes,
       'merchant': merchant,
@@ -283,14 +495,69 @@ class DBService {
   Future<List<SlothTransaction>> getTransactionsPaged({
     required int limit,
     required int offset,
+    int? accountId,
+    String? category,
+    String? searchQuery,
   }) async {
     final database = await db;
+    final whereParts = <String>[];
+    final whereArgs = <Object?>[];
+
+    if (accountId != null) {
+      whereParts.add('account_id = ?');
+      whereArgs.add(accountId);
+    }
+
+    final trimmedCategory = category?.trim();
+    if (trimmedCategory != null && trimmedCategory.isNotEmpty) {
+      whereParts.add('category = ?');
+      whereArgs.add(trimmedCategory);
+    }
+
+    final trimmedQuery = searchQuery?.trim().toLowerCase();
+    if (trimmedQuery != null && trimmedQuery.isNotEmpty) {
+      final like = '%$trimmedQuery%';
+      final matchingAccountRows = await database.query(
+        'accounts',
+        columns: ['id'],
+        where: 'LOWER(name) LIKE ?',
+        whereArgs: [like],
+      );
+      final matchingAccountIds = matchingAccountRows
+          .map((row) => row['id'])
+          .whereType<int>()
+          .toList();
+
+      final searchParts = <String>[
+        'LOWER(category) LIKE ?',
+        "LOWER(COALESCE(merchant, '')) LIKE ?",
+        "LOWER(COALESCE(notes, '')) LIKE ?",
+        'CAST(amount_minor AS TEXT) LIKE ?',
+        "printf('%.2f', amount_minor / 100.0) LIKE ?",
+        "printf('%.2f', ABS(amount_minor) / 100.0) LIKE ?",
+      ];
+      final searchArgs = <Object?>[like, like, like, like, like, like];
+
+      if (matchingAccountIds.isNotEmpty) {
+        searchParts.add(
+          'account_id IN (${List.filled(matchingAccountIds.length, '?').join(', ')})',
+        );
+        searchArgs.addAll(matchingAccountIds);
+      }
+
+      whereParts.add('(${searchParts.join(' OR ')})');
+      whereArgs.addAll(searchArgs);
+    }
+
     final result = await database.query(
       'transactions',
+      where: whereParts.isEmpty ? null : whereParts.join(' AND '),
+      whereArgs: whereArgs.isEmpty ? null : whereArgs,
       orderBy: 'date DESC',
       limit: limit,
       offset: offset,
     );
+
     return result.map((row) => SlothTransaction.fromMap(row)).toList();
   }
 
@@ -298,7 +565,7 @@ class DBService {
     final database = await db;
     final result = await database.query(
       'transactions',
-      where: 'amount < 0',
+      where: 'amount_minor < 0',
       orderBy: 'date DESC',
       limit: limit,
     );
@@ -309,7 +576,7 @@ class DBService {
     final database = await db;
     final result = await database.query(
       'transactions',
-      where: 'amount >= 0',
+      where: 'amount_minor >= 0',
       orderBy: 'date DESC',
       limit: limit,
     );
@@ -318,9 +585,10 @@ class DBService {
 
   Future<int> updateTransaction(int id, Map<String, dynamic> fields) async {
     final database = await db;
+    final updateFields = _normaliseMoneyFields(fields);
     return await database.update(
       'transactions',
-      fields,
+      updateFields,
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -337,7 +605,22 @@ class DBService {
 
   Future<List<Map<String, Object?>>> getTransactionAmounts() async {
     final database = await db;
-    return database.query('transactions', columns: ['account_id', 'amount']);
+    return database.query(
+      'transactions',
+      columns: ['account_id', 'amount_minor'],
+    );
+  }
+
+  Future<bool> hasTransactionsForAccount(int accountId) async {
+    final database = await db;
+    final result = await database.query(
+      'transactions',
+      columns: ['id'],
+      where: 'account_id = ?',
+      whereArgs: [accountId],
+      limit: 1,
+    );
+    return result.isNotEmpty;
   }
 
   // =========================
@@ -362,11 +645,13 @@ class DBService {
 
   Future<int> countTransactionsForCategory(String name) async {
     final database = await db;
-    final result = await database.rawQuery(
-      'SELECT COUNT(*) as c FROM transactions WHERE category = ?',
-      [name],
+    final result = await database.query(
+      'transactions',
+      columns: ['id'],
+      where: 'category = ?',
+      whereArgs: [name],
     );
-    return (result.first['c'] as int?) ?? 0;
+    return result.length;
   }
 
   Future<void> renameCategory(String from, String to) async {
@@ -461,7 +746,7 @@ class DBService {
 
     return database.insert('subscriptions', {
       'name': name,
-      'amount': amount,
+      'amount_minor': toMinorUnits(amount),
       'currency': currency,
       'interval': interval,
       'next_due': nextDueMillis,
@@ -510,11 +795,12 @@ class DBService {
 
   Future<int> updateSubscription(int id, Map<String, Object?> fields) async {
     final database = await db;
-    fields['updated_at'] = DateTime.now().millisecondsSinceEpoch;
+    final updateFields = _normaliseMoneyFields(fields);
+    updateFields['updated_at'] = DateTime.now().millisecondsSinceEpoch;
 
     return database.update(
       'subscriptions',
-      fields,
+      updateFields,
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -580,34 +866,42 @@ class DBService {
   Future<void> resetApp() async {
     final database = await db;
 
-    await database.delete('transactions');
-    await database.delete('categories');
-    await database.delete('settings');
-    await database.delete('accounts');
+    await database.transaction((txn) async {
+      await txn.delete('subscription_events');
+      await txn.delete('transactions');
+      await txn.delete('subscriptions');
+      await txn.delete('categories');
+      await txn.delete('settings');
+      await txn.delete('accounts');
 
-    // re-seed defaults
-    await setCurrency(code: 'GBP', symbol: '£');
+      await txn.insert('settings', {'key': 'currency_code', 'value': 'GBP'});
+      await txn.insert('settings', {'key': 'currency_symbol', 'value': '£'});
 
-    await insertAccount(
-      name: 'Cash',
-      category: AccountCategory.fiat.name,
-      type: AccountType.cash.name,
-      currency: 'GBP',
-      openingBalance: 0.0,
-      createdAtMillis: DateTime.now().millisecondsSinceEpoch,
-    );
+      await txn.insert('accounts', {
+        'name': 'Cash',
+        'category': AccountCategory.asset.dbValue,
+        'type': AccountType.cash.dbValue,
+        'currency': 'GBP',
+        'opening_balance_minor': 0,
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+      });
 
-    const defaultCategories = [
-      'Groceries',
-      'Rent',
-      'Utilities',
-      'Salary',
-      'Investment',
-      'Entertainment',
-      'Travel',
-    ];
-    for (var cat in defaultCategories) {
-      await insertCategory(cat);
-    }
+      const defaultCategories = [
+        'Salary',
+        'Rent',
+        'Utilities',
+        'Groceries',
+        'Investment',
+        'Entertainment',
+        'Travel',
+        'Subscriptions',
+      ];
+      for (var i = 0; i < defaultCategories.length; i++) {
+        await txn.insert('categories', {
+          'name': defaultCategories[i],
+          'sort_order': i,
+        });
+      }
+    });
   }
 }

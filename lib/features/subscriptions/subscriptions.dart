@@ -7,7 +7,6 @@ export 'state/subscriptions_state.dart';
 // Logic helpers
 export 'logic/sub_group.dart';
 export 'logic/interval_helper.dart';
-export 'logic/monthly_equivalents.dart';
 
 // Widgets/modals
 export 'widgets/add_subscription_modal.dart';

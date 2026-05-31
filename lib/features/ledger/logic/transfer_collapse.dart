@@ -39,9 +39,11 @@ List<SlothTransaction> collapseTransfers(
     );
 
     final fromName =
-        accountState.byId(fromLeg.accountId)?.name ?? 'Account ${fromLeg.accountId}';
+        accountState.byId(fromLeg.accountId)?.name ??
+        'Account ${fromLeg.accountId}';
     final toName =
-        accountState.byId(toLeg.accountId)?.name ?? 'Account ${toLeg.accountId}';
+        accountState.byId(toLeg.accountId)?.name ??
+        'Account ${toLeg.accountId}';
 
     // Prefer memo from fromLeg, fallback to toLeg.
     final memo = (fromLeg.notes?.trim().isNotEmpty == true)
