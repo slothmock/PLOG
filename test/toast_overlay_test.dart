@@ -38,6 +38,46 @@ void main() {
     expect(await future, isFalse);
   });
 
+  testWidgets('UndoToast dismisses when tapping outside', (tester) async {
+    final navigatorContext = await pumpNavigatorContext(tester);
+
+    final future = UndoToast.show(
+      navigatorContext,
+      message: 'Tap away undo',
+      duration: const Duration(seconds: 30),
+    );
+
+    await tester.pump();
+    expect(find.text('Tap away undo'), findsOneWidget);
+
+    await tester.tapAt(const Offset(400, 400));
+    await tester.pump();
+
+    expect(find.text('Tap away undo'), findsNothing);
+    expect(await future, isFalse);
+  });
+
+  testWidgets('UndoToast returns true when undo action is tapped', (
+    tester,
+  ) async {
+    final navigatorContext = await pumpNavigatorContext(tester);
+
+    final future = UndoToast.show(
+      navigatorContext,
+      message: 'Undoable action',
+      duration: const Duration(seconds: 30),
+    );
+
+    await tester.pump();
+    expect(find.text('Undoable action'), findsOneWidget);
+
+    await tester.tap(find.text('UNDO'));
+    await tester.pump();
+
+    expect(find.text('Undoable action'), findsNothing);
+    expect(await future, isTrue);
+  });
+
   testWidgets('CustomInfoToast can show from a Navigator context', (
     tester,
   ) async {
@@ -56,6 +96,25 @@ void main() {
     await future;
   });
 
+  testWidgets('CustomInfoToast dismisses when tapping outside', (tester) async {
+    final navigatorContext = await pumpNavigatorContext(tester);
+
+    final future = CustomInfoToast.show(
+      navigatorContext,
+      message: 'Tap away info',
+      duration: const Duration(seconds: 30),
+    );
+
+    await tester.pump();
+    expect(find.text('Tap away info'), findsOneWidget);
+
+    await tester.tapAt(const Offset(400, 400));
+    await tester.pump();
+
+    expect(find.text('Tap away info'), findsNothing);
+    await future;
+  });
+
   testWidgets('ErrorToast can show from a Navigator context', (tester) async {
     final navigatorContext = await pumpNavigatorContext(tester);
 
@@ -69,6 +128,25 @@ void main() {
     expect(find.text('Something went wrong'), findsOneWidget);
 
     await tester.pump(const Duration(milliseconds: 20));
+    await future;
+  });
+
+  testWidgets('ErrorToast dismisses when tapping outside', (tester) async {
+    final navigatorContext = await pumpNavigatorContext(tester);
+
+    final future = ErrorToast.show(
+      navigatorContext,
+      message: 'Tap away error',
+      duration: const Duration(seconds: 30),
+    );
+
+    await tester.pump();
+    expect(find.text('Tap away error'), findsOneWidget);
+
+    await tester.tapAt(const Offset(400, 400));
+    await tester.pump();
+
+    expect(find.text('Tap away error'), findsNothing);
     await future;
   });
 }
