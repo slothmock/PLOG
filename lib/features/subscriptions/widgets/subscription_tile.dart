@@ -7,9 +7,9 @@ import 'package:sloth_ledger/app/utils/currency_formatter.dart';
 import 'package:sloth_ledger/app/widgets/error_toast.dart';
 import 'package:sloth_ledger/app/widgets/info_toast.dart';
 import 'package:sloth_ledger/domain/subscriptions/subscription.dart';
+import 'package:sloth_ledger/features/subscriptions/logic/interval_helper.dart';
 import 'package:sloth_ledger/features/subscriptions/widgets/subscription_detail_modal.dart';
 import 'package:sloth_ledger/features/subscriptions/widgets/add_subscription_modal.dart';
-import 'package:sloth_ledger/features/subscriptions/logic/monthly_equivalents.dart';
 
 class SubscriptionTile extends ConsumerStatefulWidget {
   const SubscriptionTile({super.key, required this.sub});

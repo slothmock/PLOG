@@ -114,3 +114,19 @@ DateTime addInterval(
       }
   }
 }
+
+String intervalLabelHelper(String raw) {
+  switch (raw) {
+    case 'weekly':
+      return 'Weekly';
+    case 'monthly':
+      return 'Monthly';
+    case 'quarterly':
+      return 'Quarterly';
+    case 'yearly':
+      return 'Yearly';
+    default:
+      // Future: custom intervals
+      return raw;
+  }
+}
